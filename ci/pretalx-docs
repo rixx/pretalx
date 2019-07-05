@@ -1,16 +1,18 @@
 #!/bin/bash
-ls
-pwd
-python --version
-which pip
+
+set -e
 
 apt-get update
-apt-get install -y gettext
+apt-get -y install locales gettext enchant myspell-en-gb
+locale-gen de_DE
 
 cd pretalx/src
 pip install -e ".[dev]"
-cd ../doc
+
+cd ..
 pip install -r requirements.txt
+
+cd doc
 
 make html
 make linkcheck

@@ -1,12 +1,21 @@
 #!/bin/bash
-ls
-pwd
-python --version
-which pip
+
+set -e
 
 apt-get update
-apt-get install -y gettext
+apt-get -y install locales gettext
+locale-gen de_DE
 
 cd pretalx/src
 pip install -e ".[dev]"
-pytest
+
+echo "First positional argument"
+echo "$1"
+if [[ "$1" == "push" ]]; then
+    python -m pretalx rebuild
+    pip install codecov coverage
+    pytest --cov=pretalx
+    codecov
+else
+    pytest
+fi
