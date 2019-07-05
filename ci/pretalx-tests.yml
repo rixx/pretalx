@@ -11,4 +11,4 @@ inputs:
  - name: pretalx
 
 run:
-  path: pretalx-tests
+  path: pretalx/ci/pretalx-tests
