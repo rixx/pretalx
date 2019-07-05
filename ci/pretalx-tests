@@ -3,5 +3,7 @@ ls
 pwd
 python --version
 which pip
+
+cd pretalx/src
 pip install -e ".[dev]"
 pytest
