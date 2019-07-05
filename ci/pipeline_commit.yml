@@ -1,0 +1,44 @@
+---
+resources:
+  - name: pretalx
+    type: git
+    source: &repo-source
+      uri: https://github.com/rixx/pretalx
+      branch: master
+
+jobs:
+  - name: test
+    public: true
+    plan:
+      - get: pretalx
+        trigger: true
+      - task: Run tests
+        file: pretalx/ci/pretalx-tests.yml
+        vars:
+          - codecov: push
+          - python-version: 3.7
+  - name: lint
+    public: true
+    plan:
+      - get: pretalx
+        trigger: true
+      - task: Run lint
+        file: pretalx/ci/pretalx-lint.yml
+  - name: docs
+    public: true
+    plan:
+      - get: pretalx
+        trigger: true
+      - task: Install gettext
+      - task: build docs
+        file: pretalx/ci/pretalx-docs.yml
+  - name: deploy
+    plan:
+      - get: pretalx
+        trigger: true
+        passed:
+          - test
+          - lint
+          - docs
+      - task: Run deploy on next
+        file: pretalx/ci/pretalx-deploy.yml
