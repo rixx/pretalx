@@ -16,6 +16,7 @@ jobs:
         - task: Run tests for Python 3.6
           file: pretalx/ci/pretalx-tests.yml
           vars:
+            codecov:
             python_version: 3.6
         - task: Run tests for Python 3.7
           file: pretalx/ci/pretalx-tests.yml
@@ -25,6 +26,7 @@ jobs:
         - task: Run tests for Python 3.8
           file: pretalx/ci/pretalx-tests.yml
           vars:
+            codecov:
             python_version: 3.8
   - name: lint
     public: true
