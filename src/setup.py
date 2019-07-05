@@ -130,6 +130,7 @@ setup(
             'pytest-rerunfailures',
             'pytest-sugar',
             'pytest-tldr',
+            'pytest-xdist',
         ],
         'mysql': ['mysqlclient'],
         'postgres': ['psycopg2-binary'],
