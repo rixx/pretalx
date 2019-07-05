@@ -29,8 +29,8 @@ jobs:
       - task: Run tests
         file: pretalx/ci/pretalx-tests.yml
         vars:
-          - codecov: ((codecov_token))
-          - python-version: 3.7
+          codecov: ((codecov_token))
+          python-version: 3.7
     on_failure:
       put: pretalx
       params:
