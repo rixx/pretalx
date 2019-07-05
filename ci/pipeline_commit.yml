@@ -27,7 +27,7 @@ jobs:
           file: pretalx/ci/pretalx-tests.yml
           vars:
             codecov:
-            python_version: 3.8
+            python_version: 3.8.0b1
   - name: lint
     public: true
     plan:
