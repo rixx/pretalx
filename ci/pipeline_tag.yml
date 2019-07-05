@@ -1,0 +1,27 @@
+---
+resources:
+  - name: pretalx
+    type: git
+    source: &repo-source
+      uri: https://github.com/rixx/pretalx
+      tag_filter: "v*"
+
+jobs:
+  - name: test
+    public: true
+    plan:
+      - get: pretalx
+        trigger: true
+      - task: Run tests
+        file: pretalx/ci/pretalx-tests.yml
+        vars:
+          - codecov: push
+          - python-version: 3.7
+  - name: deploy
+    plan:
+      - get: pretalx
+        trigger: true
+        passed:
+          - test
+      - task: Deploy the pretalx package
+        file: pretalx/ci/pretalx-package.yml

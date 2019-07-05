@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -e
+
+cd pretalx/src
+pip install -e "."
+pip install twine
+
+python setup.py sdist
+twine "upload dist/pretalx-*.tar.gz"
+VERSION=$(git describe)
+
+cd ../../pretalx-docker
+git submodule update --init
+cd pretalx
+git checkout $VERSION
+cd ..
+git add pretalx
+git commit -m "Build v$(VERSION)"
+git tag $VERSION
+git push
+git push --tags
