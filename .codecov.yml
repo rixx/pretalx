@@ -1,6 +1,9 @@
 codecov:
   notify:
     require_ci_to_pass: yes
+  ci:
+    - runner.rixx.de
+    - !travis-ci.org
 
 coverage:
   precision: 2

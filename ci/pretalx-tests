@@ -11,11 +11,13 @@ pip install -e ".[dev]"
 
 echo "First positional argument"
 echo "$1"
-if [[ "$1" == "push" ]]; then
-    python -m pretalx rebuild
+
+python -m pretalx rebuild
+
+if [[ "$1" != "" ]]; then
     pip install codecov coverage
     pytest --cov=pretalx
-    codecov
+    codecov --token="$1"
 else
     pytest
 fi
