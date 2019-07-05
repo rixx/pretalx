@@ -7,13 +7,17 @@ resources:
       branch: master
 jobs:
   - name: test
-    serial: true
     public: true
     plan:
       - get: pretalx
         trigger: true
       - task: Run tests
         file: pretalx-tests.yml
+    plan:
+      - get: pretalx
+        trigger: true
+      - task: Run lint
+        file: pretalx-lint.yml
 #  - name: doctest
 #    serial: true
 #    plan:
@@ -21,7 +25,6 @@ jobs:
 #        trigger: true
 #      - file: pretalx-doctests.yml
   - name: deploy
-    serial: true
     plan:
       - get: pretalx
         trigger: true
