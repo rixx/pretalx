@@ -17,7 +17,7 @@ jobs:
         vars:
           codecov: ((codecov_token))
           python-version: 3.7
-  - name: deploy
+  - name: package
     plan:
       - get: pretalx
         trigger: true

@@ -12,11 +12,20 @@ jobs:
     plan:
       - get: pretalx
         trigger: true
-      - task: Run tests
-        file: pretalx/ci/pretalx-tests.yml
-        vars:
-          codecov: ((codecov_token))
-          python_version: 3.7
+      - in_parallel:
+        - task: Run tests for Python 3.6
+          file: pretalx/ci/pretalx-tests.yml
+          vars:
+            python_version: 3.6
+        - task: Run tests for Python 3.7
+          file: pretalx/ci/pretalx-tests.yml
+          vars:
+            codecov: ((codecov_token))
+            python_version: 3.7
+        - task: Run tests for Python 3.8
+          file: pretalx/ci/pretalx-tests.yml
+          vars:
+            python_version: 3.8
   - name: lint
     public: true
     plan:
