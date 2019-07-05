@@ -16,7 +16,7 @@ jobs:
         file: pretalx/ci/pretalx-tests.yml
         vars:
           codecov: ((codecov_token))
-          python-version: 3.7
+          python_version: 3.7
   - name: lint
     public: true
     plan:

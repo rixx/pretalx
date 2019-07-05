@@ -10,7 +10,7 @@ cd pretalx/src
 pip install -e ".[dev]"
 
 cd ..
-pip install -r requirements.txt
+pip install -r doc/requirements.txt
 
 cd doc
 
