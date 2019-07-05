@@ -15,7 +15,7 @@ jobs:
       - task: Run tests
         file: pretalx/ci/pretalx-tests.yml
         vars:
-          - codecov: push
+          - codecov: (( codecov_token ))
           - python-version: 3.7
   - name: deploy
     plan:
@@ -25,3 +25,6 @@ jobs:
           - test
       - task: Deploy the pretalx package
         file: pretalx/ci/pretalx-package.yml
+        vars:
+          - twine_user: (( twine_user ))
+          - twine_password: (( twine_password ))

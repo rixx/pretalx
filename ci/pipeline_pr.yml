@@ -4,17 +4,16 @@ resource_types:
   type: docker-image
   source:
     repository: teliaoss/github-pr-resource
-    disable_forks: false
-    check_every: 1h
-    webhook_token: ooshiecalee4eaghi8eiweM5ciejaisu
 
 resources:
   - name: pretalx
     type: pull-request
-    webhook_token: (( webhook-token ))
+    webhook_token: ooshiecalee4eaghi8eiweM5ciejaisu
+    check_every: 1h
     source:
       repository: rixx/pretalx
-      access_token: (( github-access-token ))
+      disable_forks: false
+      access_token: (( pretalx_access_token ))
 
 jobs:
   - name: test
@@ -30,7 +29,7 @@ jobs:
       - task: Run tests
         file: pretalx/ci/pretalx-tests.yml
         vars:
-          - codecov: push
+          - codecov: (( codecov_token ))
           - python-version: 3.7
     on_failure:
       put: pretalx
