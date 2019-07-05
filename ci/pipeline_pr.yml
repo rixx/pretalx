@@ -62,7 +62,13 @@ jobs:
       params:
         path: pretalx
         status: failure
-  - put: pretalx
-    params:
-      path: pretalx
-      status: success
+  - name: github
+    plan:
+      - put: pretalx
+        passed:
+          - test
+          - lint
+          - docs
+        params:
+          path: pretalx
+          status: success
