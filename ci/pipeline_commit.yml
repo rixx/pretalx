@@ -29,7 +29,6 @@ jobs:
     plan:
       - get: pretalx
         trigger: true
-      - task: Install gettext
       - task: build docs
         file: pretalx/ci/pretalx-docs.yml
   - name: deploy
