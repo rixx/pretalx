@@ -1,0 +1,8 @@
+---
+platform: linux
+
+inputs:
+ - name: pretalx
+
+run:
+  path: pretalx/.travis/travis.sh

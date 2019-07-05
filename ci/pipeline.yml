@@ -1,0 +1,30 @@
+---
+resources:
+  - name: pretalx
+    type: git
+    source: &repo-source
+      uri: https://github.com/pretalx/pretalx
+      branch: master
+jobs:
+  - name: test
+    serial: true
+    public: true
+    plan:
+      - get: pretalx
+        trigger: true
+      - task: Run tests
+        file: pretalx-tests.yml
+#  - name: doctest
+#    serial: true
+#    plan:
+#      - get: pretalx
+#        trigger: true
+#      - file: pretalx-doctests.yml
+  - name: deploy
+    serial: true
+    plan:
+      - get: pretalx
+        trigger: true
+        passed: [test]
+      - task: Run deploy on next
+        file: pretalx-deploy.yml
