@@ -26,6 +26,7 @@ jobs:
         params:
           path: pretalx
           status: pending
+          context: tests
       - task: Run tests
         file: pretalx/ci/pretalx-tests.yml
         vars:
@@ -36,12 +37,24 @@ jobs:
       params:
         path: pretalx
         status: failure
+        context: tests
+    on_success:
+      put: pretalx
+      params:
+        path: pretalx
+        status: success
+        context: tests
   - name: lint
     public: true
     plan:
       - get: pretalx
         trigger: true
         version: every
+      - put: pretalx
+        params:
+          path: pretalx
+          status: pending
+          context: lint
       - task: Run lint
         file: pretalx/ci/pretalx-lint.yml
     on_failure:
@@ -49,12 +62,24 @@ jobs:
       params:
         path: pretalx
         status: failure
+        context: lint
+    on_success:
+      put: pretalx
+      params:
+        path: pretalx
+        status: success
+        context: lint
   - name: docs
     public: true
     plan:
       - get: pretalx
         trigger: true
         version: every
+      - put: pretalx
+        params:
+          path: pretalx
+          status: pending
+          context: docs
       - task: build docs
         file: pretalx/ci/pretalx-docs.yml
     on_failure:
@@ -62,13 +87,10 @@ jobs:
       params:
         path: pretalx
         status: failure
-  - name: github
-    plan:
-      - put: pretalx
-        passed:
-          - test
-          - lint
-          - docs
-        params:
-          path: pretalx
-          status: success
+        context: docs
+    on_success:
+      put: pretalx
+      params:
+        path: pretalx
+        status: success
+        context: docs
