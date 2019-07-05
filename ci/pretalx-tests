@@ -5,8 +5,7 @@ python --version
 which pip
 
 apt-get update
-apt-get install gettext-base
-apt-cache search gettext
+apt-get install gettext
 
 cd pretalx/src
 pip install -e ".[dev]"
