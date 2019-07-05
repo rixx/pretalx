@@ -5,11 +5,11 @@ image_resource:
   type: docker-image
   source:
     repository: python
-    tag: '(( python_version ))'
+    tag: '((python_version))'
 
 inputs:
  - name: pretalx
 
 run:
   path: pretalx/ci/pretalx-tests
-  args: ["(( codecov ))"]
+  args: ["((codecov))"]

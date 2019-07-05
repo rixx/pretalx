@@ -13,7 +13,7 @@ resources:
     source:
       repository: rixx/pretalx
       disable_forks: false
-      access_token: (( pretalx_access_token ))
+      access_token: ((pretalx_access_token))
 
 jobs:
   - name: test
@@ -29,7 +29,7 @@ jobs:
       - task: Run tests
         file: pretalx/ci/pretalx-tests.yml
         vars:
-          - codecov: (( codecov_token ))
+          - codecov: ((codecov_token))
           - python-version: 3.7
     on_failure:
       put: pretalx

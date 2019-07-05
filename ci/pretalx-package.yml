@@ -12,4 +12,4 @@ inputs:
 
 run:
   path: pretalx/ci/pretalx-package
-  args: ["(( twine_user ))", "(( twine_password ))"]
+  args: ["((twine_user))", "((twine_password))"]
