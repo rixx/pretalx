@@ -1,2 +1,6 @@
+ls
+pwd
+python --version
+which pip
 pip install -e ".[dev]"
 pytest
