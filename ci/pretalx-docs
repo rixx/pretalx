@@ -1,0 +1,13 @@
+#!/bin/bash
+ls
+pwd
+python --version
+which pip
+
+cd pretalx/src
+pip install -e ".[dev]"
+cd ../doc
+pip install -r requirements.txt
+
+make html
+make linkcheck
