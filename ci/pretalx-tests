@@ -4,7 +4,8 @@ pwd
 python --version
 which pip
 
-apt-get install gettext
+apt-get install gettext-base
+
 cd pretalx/src
 pip install -e ".[dev]"
 pytest
