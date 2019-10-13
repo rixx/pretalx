@@ -1,0 +1,19 @@
+version = 1
+
+test_patterns = [
+  "*/tests/**",
+  "*/test_settings.py"
+]
+
+exclude_patterns = [
+  "*/migrations/**",
+  "*/__main__.py",
+  "*/celery_app.py"
+]
+
+[[analyzers]]
+name = "python"
+enabled = true
+
+  [analyzers.meta]
+  runtime_version = "3.x.x"
