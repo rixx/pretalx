@@ -587,12 +587,15 @@ class OrgaTableMixin(SingleTableMixin):
     def get_table_kwargs(self):
         kwargs = super().get_table_kwargs()
         kwargs["event"] = getattr(self.request, "event", None)
+        kwargs["user"] = getattr(self.request, "user", None)
         return kwargs
 
     def get_table(self, *args, **kwargs):
         if not self.table_class:
             return
-        return super().get_table(*args, **kwargs)
+        table = super().get_table(*args, **kwargs)
+        table.configure(self.request)
+        return table
 
 
 class OrgaCRUDView(OrgaTableMixin, FormSignalMixin, CRUDView):

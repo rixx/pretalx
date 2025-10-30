@@ -13,6 +13,8 @@ from django.utils.translation import gettext_lazy as _
 
 from pretalx.common.tables import (
     ActionsColumn,
+    BooleanColumn,
+    DateTimeColumn,
     PretalxTable,
     SortableColumn,
     SortableTemplateColumn,
@@ -55,11 +57,18 @@ class CallableColumn(tables.Column):
 
 
 class SubmissionTable(PretalxTable):
-    indicator = SortableTemplateColumn(
-        template_name="orga/tables/columns/submission_side_indicator.html",
-        order_by=Lower(Translate("track__name")),
+    exempt_columns = ("pk", "actions", "indicator")
+
+    indicator = TemplateColumn(
         verbose_name="",
+        template_name="orga/tables/columns/submission_side_indicator.html",
+        orderable=False,
         exclude_from_export=True,
+    )
+    code = tables.Column(
+        verbose_name=_("ID"),
+        accessor="code",
+        linkify=lambda record: record.orga_urls.base,
     )
     title = SortableTemplateColumn(
         verbose_name=_("Title"),
@@ -78,14 +87,44 @@ class SubmissionTable(PretalxTable):
         accessor="submission_type__name",
         order_by=Lower(Translate("submission_type__name")),
     )
+    track = SortableColumn(
+        verbose_name=_("Track"),
+        accessor="track__name",
+        order_by=Lower(Translate("track__name")),
+        linkify=lambda record: record.track.urls.base if record.track else None,
+    )
     state = TemplateColumn(
         template_name="orga/submission/state_dropdown.html",
         verbose_name=_("State"),
         context_object_name="submission",
     )
+    pending_state = SortableTemplateColumn(
+        verbose_name=_("Pending state"),
+        template_name="cfp/event/fragment_state.html",
+        template_context={
+            "state": lambda record, table: record.pending_state,
+            "as_badge": True,
+        },
+        accessor="pending_state",
+        order_by="pending_state",
+    )
+    created = DateTimeColumn(
+        verbose_name=_("Created"),
+        accessor="created",
+        order_by="created",
+    )
     is_featured = TemplateColumn(
         template_name="orga/tables/columns/submission_is_featured.html",
         verbose_name=_("Featured"),
+    )
+    do_not_record = BooleanColumn(
+        verbose_name=_("Do not record"),
+        accessor="do_not_record",
+    )
+    content_locale = SortableColumn(
+        verbose_name=_("Content language"),
+        accessor="content_locale",
+        order_by="content_locale",
     )
     actions = ActionsColumn(
         actions={
@@ -99,10 +138,34 @@ class SubmissionTable(PretalxTable):
 
         self.exclude = list(self.exclude)
         self.can_view_speakers = can_view_speakers
+
         if not can_view_speakers:
             self.exclude += ["speakers"]
         if not kwargs.get("has_update_permission"):
             self.exclude += ["is_featured", "actions"]
+
+    @property
+    def default_columns(self):
+        columns = [
+            "indicator",
+            "title",
+            "speakers",
+            "submission_type",
+            "state",
+            "is_featured",
+        ]
+        if self.event and self.event.feature_flags.get("use_tracks"):
+            columns.insert(3, "track")
+        return columns
+
+    def _set_columns(self, selected_columns):
+        # Override set_columns to make sure the indicator stays on the left
+        super()._set_columns(selected_columns)
+        self.sequence.remove("indicator")
+        self.sequence.insert(0, "indicator")
+
+    def render_content_locale(self, record):
+        return record.get_content_locale_display()
 
     class Meta:
         model = Submission
