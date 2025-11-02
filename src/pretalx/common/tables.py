@@ -374,7 +374,7 @@ class DateTimeColumn(tables.DateTimeColumn):
             return self.placeholder
         if value and table and (event := getattr(table, "event", None)):
             value = value.astimezone(event.tz)
-        return f"{value.date().isoformat()} {value.time().isoformat()}"
+        return f"{value.date().isoformat()} {value.time().strftime('%H:%M')}"
 
     def value(self, value):
         if value:
