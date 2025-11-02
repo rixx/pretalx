@@ -405,6 +405,12 @@ class ReviewTable(PretalxTable):
 
 
 class TagTable(PretalxTable):
+    default_columns = (
+        "tag",
+        "color",
+        "proposals",
+    )
+
     tag = tables.Column(
         linkify=lambda record: record.urls.edit,
         verbose_name=_("Tag"),
@@ -416,6 +422,7 @@ class TagTable(PretalxTable):
     proposals = tables.Column(
         verbose_name=_("Proposals"),
         accessor="submission_count",
+        attrs={"th": {"class": "numeric"}, "td": {"class": "numeric"}},
         initial_sort_descending=True,
     )
     actions = ActionsColumn(actions={"edit": {}, "delete": {}})
@@ -426,5 +433,6 @@ class TagTable(PretalxTable):
             "tag",
             "color",
             "proposals",
+            "is_public",
             "actions",
         )
