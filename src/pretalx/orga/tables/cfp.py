@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from pretalx.common.tables import (
     ActionsColumn,
     BooleanColumn,
+    DateTimeColumn,
     PretalxTable,
     SortableColumn,
     TemplateColumn,
@@ -142,6 +143,12 @@ class TrackTable(UnsortableMixin, PretalxTable):
 
 
 class SubmissionTypeTable(PretalxTable):
+    default_columns = (
+        "name",
+        "proposals",
+        "default_duration",
+    )
+
     name = TemplateColumn(
         linkify=lambda record: record.urls.edit,
         verbose_name=_("Session type"),
@@ -153,6 +160,10 @@ class SubmissionTypeTable(PretalxTable):
         accessor="submission_count",
         order_by="submission_count",
         initial_sort_descending=True,
+    )
+    deadline = DateTimeColumn()
+    requires_access_code = BooleanColumn(
+        verbose_name=_("Requires access code"),
     )
     actions = ActionsColumn(
         actions={
@@ -177,7 +188,14 @@ class SubmissionTypeTable(PretalxTable):
 
     class Meta:
         model = SubmissionType
-        fields = ("name", "proposals", "default_duration", "actions")
+        fields = (
+            "name",
+            "default_duration",
+            "proposals",
+            "deadline",
+            "requires_access_code",
+            "actions",
+        )
 
 
 class QuestionTable(UnsortableMixin, PretalxTable):
