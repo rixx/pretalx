@@ -24,6 +24,15 @@ from pretalx.submission.models import (
 
 
 class SubmitterAccessCodeTable(PretalxTable):
+    exempt_columns = ("pk", "actions")
+    default_columns = (
+        "code",
+        "track",
+        "submission_type",
+        "valid_until",
+        "uses",
+    )
+
     code = TemplateColumn(
         template_name="orga/tables/columns/copyable.html",
         verbose_name=_("Code"),
@@ -39,11 +48,26 @@ class SubmitterAccessCodeTable(PretalxTable):
         verbose_name=_("Session type"),
         order_by=Lower(Translate("submission_type__name")),
     )
-    valid_until = tables.Column()
+    valid_until = tables.Column(verbose_name=_("Valid until"))
     uses = tables.Column(
+        verbose_name=_("Uses"),
         attrs={"th": {"class": "numeric"}, "td": {"class": "numeric"}},
         order_by="redeemed",
         empty_values=[""],
+        initial_sort_descending=True,
+    )
+    redeemed = tables.Column(
+        verbose_name=_("Redeemed"),
+        attrs={"th": {"class": "numeric"}, "td": {"class": "numeric"}},
+        initial_sort_descending=True,
+    )
+    maximum_uses = tables.Column(
+        verbose_name=_("Maximum uses"),
+        attrs={"th": {"class": "numeric"}, "td": {"class": "numeric"}},
+    )
+    submission_count = tables.Column(
+        verbose_name=_("Submissions"),
+        attrs={"th": {"class": "numeric"}, "td": {"class": "numeric"}},
         initial_sort_descending=True,
     )
 
@@ -51,6 +75,9 @@ class SubmitterAccessCodeTable(PretalxTable):
         redeemed = record.redeemed or 0
         maximum = record.maximum_uses if record.maximum_uses else "∞ "
         return f"{redeemed} / {maximum}"
+
+    def render_maximum_uses(self, record):
+        return record.maximum_uses if record.maximum_uses else "∞"
 
     actions = ActionsColumn(
         actions={
@@ -85,6 +112,9 @@ class SubmitterAccessCodeTable(PretalxTable):
             "submission_type",
             "valid_until",
             "uses",
+            "redeemed",
+            "maximum_uses",
+            "submission_count",
             "actions",
         )
 

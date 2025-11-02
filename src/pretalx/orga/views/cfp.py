@@ -536,7 +536,21 @@ class AccessCodeView(OrderActionMixin, OrgaCRUDView):
     create_button_label = _("New access code")
 
     def get_queryset(self):
-        return self.request.event.submitter_access_codes.all().order_by("valid_until")
+        return (
+            self.request.event.submitter_access_codes.all()
+            .annotate(
+                submission_count=Count(
+                    "submissions",
+                    filter=~Q(
+                        submissions__state__in=[
+                            SubmissionStates.DELETED,
+                            SubmissionStates.DRAFT,
+                        ]
+                    ),
+                )
+            )
+            .order_by("valid_until")
+        )
 
     def get_generic_title(self, instance=None):
         if instance:
