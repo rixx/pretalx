@@ -109,6 +109,15 @@ class SpeakerList(EventPermissionRequired, Filterable, OrgaTableMixin, ListView)
     def get_table_data(self):
         return self.get_queryset()
 
+    @cached_property
+    def short_questions(self):
+        from pretalx.submission.models import QuestionVariant
+
+        return self.request.event.questions.filter(
+            target="speaker",
+            variant__in=QuestionVariant.short_answers,
+        )
+
     def get_table_kwargs(self):
         result = super().get_table_kwargs()
         result["has_arrived_permission"] = self.request.user.has_perm(
@@ -117,6 +126,7 @@ class SpeakerList(EventPermissionRequired, Filterable, OrgaTableMixin, ListView)
         result["has_update_permission"] = self.request.user.has_perm(
             "person.update_speakerprofile", self.request.event
         )
+        result["short_questions"] = list(self.short_questions)
         return result
 
 

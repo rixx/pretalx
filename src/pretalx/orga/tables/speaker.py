@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: 2025-present Tobias Kunze
 # SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
 
+from functools import partial
+
 import django_tables2 as tables
 from django.db.models.functions import Lower
 from django.utils.functional import cached_property
@@ -16,6 +18,29 @@ from pretalx.common.tables import (
 )
 from pretalx.orga.utils.i18n import Translate
 from pretalx.person.models import SpeakerInformation, SpeakerProfile
+
+
+class CallableColumn(tables.Column):
+    """Column that renders using a callable function.
+
+    To avoid pickling issues, stores the callable directly without binding to self.
+    The callable should accept (record, column) as arguments, where column has
+    a table_ref attribute set after initialization.
+    """
+
+    def __init__(self, *args, callable_func=None, **kwargs):
+        self.callable_func = callable_func
+        self.table_ref = None
+        super().__init__(*args, **kwargs)
+
+    def render(self, record):
+        return self.callable_func(record, self.table_ref)
+
+
+def render_speaker_question_answer(record, table, question_id):
+    if not hasattr(record, "_short_answers_cache"):
+        record._short_answers_cache = table.get_short_answers_for_speaker(record)
+    return record._short_answers_cache.get(question_id, "")
 
 
 class SpeakerInformationTable(PretalxTable):
@@ -104,9 +129,40 @@ class SpeakerTable(PretalxTable):
         template_name="orga/tables/columns/speaker_arrived.html",
     )
 
-    def __init__(self, *args, has_arrived_permission=False, **kwargs):
+    def __init__(self, *args, has_arrived_permission=False, short_questions=None, **kwargs):
+        self.short_questions = short_questions or []
+
+        # Add dynamic columns for short questions
+        for question in self.short_questions:
+            column_name = f"question_{question.id}"
+            self.base_columns[column_name] = CallableColumn(
+                verbose_name=question.question,
+                accessor="pk",
+                orderable=False,
+                callable_func=partial(render_speaker_question_answer, question_id=question.pk),
+            )
+
         super().__init__(*args, **kwargs)
+
+        for bound_column in self.columns:
+            if isinstance(bound_column.column, CallableColumn):
+                bound_column.column.table_ref = self
+
         self.has_arrived_permission = has_arrived_permission
+
+        # Hide question columns by default (they are optional)
+        for question in self.short_questions:
+            self.columns.hide(f"question_{question.id}")
+
+    def get_short_answers_for_speaker(self, speaker):
+        if not self.short_questions:
+            return {}
+
+        return {
+            answer.question_id: answer.answer_string
+            for answer in speaker.user.answers.all()
+            if answer.question in self.short_questions
+        }
 
     class Meta:
         model = SpeakerProfile

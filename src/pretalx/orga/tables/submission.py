@@ -133,8 +133,24 @@ class SubmissionTable(PretalxTable):
         }
     )
 
-    def __init__(self, *args, can_view_speakers=False, **kwargs):
+    def __init__(self, *args, can_view_speakers=False, short_questions=None, **kwargs):
+        self.short_questions = short_questions or []
+
+        # Add dynamic columns for short questions
+        for question in self.short_questions:
+            column_name = f"question_{question.id}"
+            self.base_columns[column_name] = CallableColumn(
+                verbose_name=question.question,
+                accessor="pk",
+                orderable=False,
+                callable_func=partial(render_question_answer, question_id=question.pk),
+            )
+
         super().__init__(*args, **kwargs)
+
+        for bound_column in self.columns:
+            if isinstance(bound_column.column, CallableColumn):
+                bound_column.column.table_ref = self
 
         self.exclude = list(self.exclude)
         self.can_view_speakers = can_view_speakers
@@ -143,6 +159,10 @@ class SubmissionTable(PretalxTable):
             self.exclude += ["speakers"]
         if not kwargs.get("has_update_permission"):
             self.exclude += ["is_featured", "actions"]
+
+        # Hide question columns by default (they are optional)
+        for question in self.short_questions:
+            self.columns.hide(f"question_{question.id}")
 
     @property
     def default_columns(self):
@@ -166,6 +186,16 @@ class SubmissionTable(PretalxTable):
 
     def render_content_locale(self, record):
         return record.get_content_locale_display()
+
+    def get_short_answers_for_submission(self, submission):
+        if not self.short_questions:
+            return {}
+
+        return {
+            answer.question_id: answer.answer_string
+            for answer in submission.answers.all()
+            if answer.question in self.short_questions
+        }
 
     class Meta:
         model = Submission
