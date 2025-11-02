@@ -94,6 +94,7 @@ class PretalxTable(tables.Table):
     def configure(self, request):
         columns = None
         ordering = None
+        page_size = None
 
         # If an ordering has been specified as a query parameter, save it as the
         # user's preferred ordering for this table.
@@ -105,12 +106,15 @@ class PretalxTable(tables.Table):
             preferences = request.user.get_event_preferences(self.event)
             columns = preferences.get(f"tables.{self.name}.columns")
             ordering = preferences.get(f"tables.{self.name}.ordering")
+            page_size = preferences.get(f"tables.{self.name}.page_size")
 
         columns = columns or getattr(self, "default_columns", None) or self.Meta.fields
         self._set_columns(columns)
 
         if ordering is not None:
             self.order_by = ordering
+
+        return page_size
 
 
 class UnsortableMixin:

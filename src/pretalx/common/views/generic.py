@@ -568,17 +568,32 @@ class OrgaTableMixin(SingleTableMixin):
     DEFAULT_PAGINATION = 50
 
     def get_paginate_by(self, queryset=None):
-        skey = "stored_page_size_" + self.request.resolver_match.url_name
-        default = (
-            self.request.session.get(skey)
-            or getattr(self, "paginate_by", None)
-            or self.DEFAULT_PAGINATION
-        )
+        if hasattr(self, '_table_page_size') and self._table_page_size:
+            default = self._table_page_size
+        else:
+            skey = "stored_page_size_" + self.request.resolver_match.url_name
+            default = (
+                self.request.session.get(skey)
+                or getattr(self, "paginate_by", None)
+                or self.DEFAULT_PAGINATION
+            )
+
         if self.request.GET.get("page_size"):
             try:
                 max_page_size = getattr(self, "max_page_size", 250)
                 size = min(max_page_size, int(self.request.GET.get("page_size")))
-                self.request.session[skey] = size
+
+                if (
+                    self.request.user.is_authenticated
+                    and (table := getattr(self, "table", None))
+                    and (event := getattr(table, "event", None))
+                ):
+                    preferences = self.request.user.get_event_preferences(event)
+                    preferences.set(f"tables.{table.name}.page_size", size, commit=True)
+                else:
+                    skey = "stored_page_size_" + self.request.resolver_match.url_name
+                    self.request.session[skey] = size
+
                 return size
             except ValueError:
                 return default
@@ -594,7 +609,8 @@ class OrgaTableMixin(SingleTableMixin):
         if not self.table_class:
             return
         table = super().get_table(*args, **kwargs)
-        table.configure(self.request)
+        page_size = table.configure(self.request)
+        self._table_page_size = page_size
         return table
 
 
