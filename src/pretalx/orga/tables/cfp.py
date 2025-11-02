@@ -89,10 +89,15 @@ class SubmitterAccessCodeTable(PretalxTable):
 
 
 class TrackTable(UnsortableMixin, PretalxTable):
-    name = TemplateColumn(
+    default_columns = (
+        "name",
+        "color",
+        "proposals",
+    )
+
+    name = tables.Column(
         linkify=lambda record: record.urls.edit,
         verbose_name=_("Track"),
-        template_name="orga/tables/columns/track_name.html",
     )
     color = TemplateColumn(
         verbose_name=_("Colour"),
@@ -102,6 +107,9 @@ class TrackTable(UnsortableMixin, PretalxTable):
         verbose_name=_("Proposals"),
         linkify=lambda record: f"{record.event.orga_urls.submissions}?track={record.id}",
         accessor="submission_count",
+    )
+    requires_access_code = BooleanColumn(
+        verbose_name=_("Requires access code"),
     )
     actions = ActionsColumn(
         actions={
@@ -123,7 +131,13 @@ class TrackTable(UnsortableMixin, PretalxTable):
 
     class Meta:
         model = Track
-        fields = ("name", "color", "proposals", "actions")
+        fields = (
+            "name",
+            "color",
+            "proposals",
+            "requires_access_code",
+            "actions",
+        )
         row_attrs = {"dragsort-id": lambda record: record.pk}
 
 
