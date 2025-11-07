@@ -10,6 +10,7 @@ from django.core import mail as djmail
 from django.utils.timezone import now
 from django_scopes import scope
 
+from pretalx.common.models import ActivityLog
 from pretalx.event.models import Event
 
 
@@ -900,7 +901,7 @@ def test_event_history_detail_view_with_changes(orga_client, orga_user, event, s
         )
         log_pk = log.pk
 
-    url = f"/orga/event/{event.slug}/settings/history/{log_pk}/"
+    url = f"/orga/event/{event.slug}/history/{log_pk}/"
     response = orga_client.get(url, follow=True)
     assert response.status_code == 200
     assert "Changes" in response.text
@@ -921,7 +922,7 @@ def test_event_history_detail_view_requires_permission(client, orga_user, event,
         )
         log_pk = log.pk
 
-    url = f"/orga/event/{event.slug}/settings/history/{log_pk}/"
+    url = f"/orga/event/{event.slug}/history/{log_pk}/"
     response = client.get(url, follow=True)
     # Should redirect to login or show permission denied
     assert response.status_code in [200, 403]
@@ -931,7 +932,7 @@ def test_event_history_detail_view_requires_permission(client, orga_user, event,
 
 
 @pytest.mark.django_db
-def test_event_history_detail_view_question_changes(orga_client, orga_user, event, submission, question):
+def test_event_history_detail_view_question_changes(orga_client, orga_user, event, submission):
     """Test that the history detail view displays question answer changes."""
     with scope(event=event):
         # Create a log entry with question changes
@@ -948,7 +949,7 @@ def test_event_history_detail_view_question_changes(orga_client, orga_user, even
         )
         log_pk = log.pk
 
-    url = f"/orga/event/{event.slug}/settings/history/{log_pk}/"
+    url = f"/orga/event/{event.slug}/history/{log_pk}/"
     response = orga_client.get(url, follow=True)
     assert response.status_code == 200
     assert "Favorite Color" in response.text
@@ -970,7 +971,7 @@ def test_event_history_detail_view_legacy_format(orga_client, orga_user, event, 
         )
         log_pk = log.pk
 
-    url = f"/orga/event/{event.slug}/settings/history/{log_pk}/"
+    url = f"/orga/event/{event.slug}/history/{log_pk}/"
     response = orga_client.get(url, follow=True)
     assert response.status_code == 200
     # Should show the log but indicate no detailed changes
@@ -991,7 +992,7 @@ def test_event_history_detail_view_scoping(orga_client, orga_user, event, other_
         log_pk = log.pk
 
     # Try to access the log from a different event's URL
-    url = f"/orga/event/{other_event.slug}/settings/history/{log_pk}/"
+    url = f"/orga/event/{other_event.slug}/history/{log_pk}/"
     response = orga_client.get(url, follow=True)
     # Should return 404 since the log doesn't belong to this event
     assert response.status_code == 404
