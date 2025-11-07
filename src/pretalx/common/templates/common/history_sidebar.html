@@ -1,0 +1,81 @@
+<!--
+SPDX-FileCopyrightText: 2025-present Tobias Kunze
+SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
+-->
+
+{% load i18n %}
+
+{% if show_history and log_entries %}
+    <div class="card history-sidebar">
+        <div class="card-header">
+            <h4 class="card-title">{% translate "Recent Changes" %}</h4>
+        </div>
+        <ul class="list-group list-group-flush">
+            {% for log in log_entries %}
+                <li class="list-group-item logentry compact">
+                    <div class="log-time">
+                        <small class="text-muted">
+                            <i class="fa fa-clock-o"></i>
+                            {{ log.timestamp|date:"SHORT_DATETIME_FORMAT" }}
+                        </small>
+                    </div>
+                    {% if log.person %}
+                        <div class="log-person">
+                            <small>
+                                {% if log.is_orga_action %}
+                                    <i class="fa fa-check-circle fa-fw text-success" title="{% translate 'This change was performed by an event organiser.' %}"></i>
+                                {% else %}
+                                    <i class="fa fa-user fa-fw"></i>
+                                {% endif %}
+                                {{ log.person.get_display_name }}
+                            </small>
+                        </div>
+                    {% endif %}
+                    <div class="log-text">
+                        {{ log.display }}
+                        {% if log.json_data.changes or log.json_data.question_changes %}
+                            <a href="{% url 'orga:event.history.detail' event=log.event.slug pk=log.pk %}"
+                               class="btn btn-xs btn-info"
+                               style="margin-left: 0.25rem;"
+                               title="{% translate 'View detailed changes' %}">
+                                <i class="fa fa-search"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <style>
+        .history-sidebar {
+            margin-top: 1rem;
+        }
+        .history-sidebar .card-header {
+            padding: 0.5rem 1rem;
+            background-color: #f8f9fa;
+        }
+        .history-sidebar .card-title {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .history-sidebar .logentry.compact {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+        .history-sidebar .log-time {
+            margin-bottom: 0.25rem;
+        }
+        .history-sidebar .log-person {
+            margin-bottom: 0.25rem;
+        }
+        .history-sidebar .log-text {
+            color: #495057;
+        }
+        .history-sidebar .btn-xs {
+            padding: 0.125rem 0.25rem;
+            font-size: 0.75rem;
+        }
+    </style>
+{% endif %}
