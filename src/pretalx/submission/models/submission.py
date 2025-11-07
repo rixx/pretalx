@@ -1188,10 +1188,10 @@ class Submission(GenerateCode, PretalxModel):
         SubmissionFavourite.objects.filter(user=user, submission=self).delete()
 
     def log_action(
-        self, action, data=None, person=None, orga=False, content_object=None
+        self, action, data=None, person=None, orga=False, content_object=None, old_data=None, new_data=None
     ):
         if self.state != SubmissionStates.DRAFT:
-            return super().log_action(action, data, person, orga, content_object)
+            return super().log_action(action, data, person, orga, content_object, old_data, new_data)
 
 
 class SubmissionFavourite(PretalxModel):

@@ -489,6 +489,14 @@ class SubmissionContent(
     @transaction.atomic()
     def form_valid(self, form):
         created = not self.object
+
+        # Capture old state before any modifications (for updates only)
+        # Get a fresh copy from DB to avoid issues with form.instance being the same object
+        old_data = None
+        if not created and self.object and self.object.pk and hasattr(self.object, '_get_instance_data'):
+            fresh_instance = self.object.__class__.objects.get(pk=self.object.pk)
+            old_data = fresh_instance._get_instance_data()
+
         speaker_form = self.new_speaker_form
         if speaker_form and not speaker_form.is_valid():
             return self.form_invalid(form)
@@ -497,9 +505,15 @@ class SubmissionContent(
         if not self._questions_form.is_valid():
             messages.error(self.request, phrases.base.error_saving_changes)
             return self.get(self.request, *self.args, **self.kwargs)
+
         form.instance.event = self.request.event
         form.save()
         self._questions_form.save()
+
+        # Capture new state after saving
+        new_data = None
+        if hasattr(form.instance, '_get_instance_data'):
+            new_data = form.instance._get_instance_data()
 
         if created and speaker_form and (email := speaker_form.cleaned_data["email"]):
             form.instance.add_speaker(
@@ -515,7 +529,11 @@ class SubmissionContent(
             messages.success(self.request, _("The proposal has been updated!"))
         if form.has_changed():
             action = "pretalx.submission." + ("create" if created else "update")
-            form.instance.log_action(action, person=self.request.user, orga=True)
+            log_kwargs = {"person": self.request.user, "orga": True}
+            if old_data is not None and new_data is not None:
+                log_kwargs['old_data'] = old_data
+                log_kwargs['new_data'] = new_data
+            form.instance.log_action(action, **log_kwargs)
             self.request.event.cache.set("rebuild_schedule_export", True, None)
         return super().form_valid(form)
 
