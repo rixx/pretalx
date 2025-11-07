@@ -945,3 +945,77 @@ def test_orga_cannot_post_empty_submission_comment(orga_client, submission):
     with scope(event=submission.event):
         submission.refresh_from_db()
         assert submission.comments.count() == 0
+
+
+@pytest.mark.django_db
+def test_orga_can_view_submission_history(orga_client, event, submission, orga_user):
+    """Test that organizers with list permission can view submission history."""
+    with scope(event=event):
+        # Log some actions
+        submission.log_action(
+            "pretalx.submission.update",
+            person=orga_user,
+            orga=True,
+            old_data={"title": "Old Title"},
+            new_data={"title": "New Title"},
+        )
+
+    response = orga_client.get(submission.orga_urls.history, follow=True)
+    assert response.status_code == 200
+    assert "History" in response.text or "Activity" in response.text
+
+
+@pytest.mark.django_db
+def test_reviewer_can_view_submission_history(review_client, event, submission, review_user):
+    """Test that reviewers with list permission can also view submission history."""
+    with scope(event=event):
+        # Log some actions
+        submission.log_action(
+            "pretalx.submission.update",
+            person=review_user,
+            orga=True,
+            old_data={"title": "Old Title"},
+            new_data={"title": "New Title"},
+        )
+
+    response = review_client.get(submission.orga_urls.history, follow=True)
+    assert response.status_code == 200
+    assert "History" in response.text or "Activity" in response.text
+
+
+@pytest.mark.django_db
+def test_admin_can_view_submission_history(administrator_client, event, submission, administrator):
+    """Test that administrators can still view submission history."""
+    with scope(event=event):
+        # Log some actions
+        submission.log_action(
+            "pretalx.submission.update",
+            person=administrator,
+            orga=True,
+            old_data={"title": "Old Title"},
+            new_data={"title": "New Title"},
+        )
+
+    response = administrator_client.get(submission.orga_urls.history, follow=True)
+    assert response.status_code == 200
+    assert "History" in response.text or "Activity" in response.text
+
+
+@pytest.mark.django_db
+def test_submission_history_tab_visible_to_orga(orga_client, event, submission):
+    """Test that the history tab appears in the submission navigation for organizers."""
+    response = orga_client.get(submission.orga_urls.base, follow=True)
+    assert response.status_code == 200
+    # Check that history link is in the page
+    assert submission.orga_urls.history in response.text
+    assert "History" in response.text
+
+
+@pytest.mark.django_db
+def test_submission_history_tab_visible_to_reviewer(review_client, event, submission):
+    """Test that the history tab also appears for reviewers with list permission."""
+    response = review_client.get(submission.orga_urls.base, follow=True)
+    assert response.status_code == 200
+    # Check that history link is in the page since reviewers have list permission
+    assert submission.orga_urls.history in response.text
+    assert "History" in response.text
