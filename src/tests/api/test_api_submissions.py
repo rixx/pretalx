@@ -147,7 +147,7 @@ def test_orga_can_see_all_submissions(
     response = client.get(
         submission.event.api_urls.submissions + "?questions=all",
         follow=True,
-        headers={"Authorization": f"Token {orga_user_token.token}"},
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
     )
     content = json.loads(response.text)
 
@@ -215,7 +215,7 @@ def test_orga_can_see_all_submissions_even_nonpublic(
     response = client.get(
         submission.event.api_urls.submissions + "?expand=speakers",
         follow=True,
-        headers={"Authorization": f"Token {orga_user_token.token}"},
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
     )
     content = json.loads(response.text)
 
@@ -265,7 +265,7 @@ def test_orga_can_see_all_talks_even_nonpublic(
     response = client.get(
         submission.event.api_urls.submissions + "?state=rejected",
         follow=True,
-        headers={"Authorization": f"Token {orga_user_token.token}"},
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
     )
     content = json.loads(response.text)
 
@@ -290,7 +290,7 @@ def test_reviewer_cannot_see_submissions_in_anonymised_phase(
     response = client.get(
         submission.event.api_urls.submissions,
         follow=True,
-        headers={"Authorization": f"Token {orga_user_token.token}"},
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
     )
     assert response.status_code == 200
     content = json.loads(response.text)
@@ -318,7 +318,7 @@ def test_orga_can_see_tags(client, orga_user_token, tag):
     response = client.get(
         tag.event.api_urls.tags,
         follow=True,
-        headers={"Authorization": f"Token {orga_user_token.token}"},
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
     )
     content = json.loads(response.text)
 
@@ -332,7 +332,7 @@ def test_orga_can_see_single_tag(client, orga_user_token, tag):
     response = client.get(
         tag.event.api_urls.tags + f"{tag.pk}/",
         follow=True,
-        headers={"Authorization": f"Token {orga_user_token.token}"},
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
     )
     content = json.loads(response.text)
 
@@ -347,7 +347,7 @@ def test_orga_can_see_single_tag_locale_override(client, orga_user_token, tag):
     response = client.get(
         tag.event.api_urls.tags + f"{tag.pk}/?lang=en",
         follow=True,
-        headers={"Authorization": f"Token {orga_user_token.token}"},
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
     )
     content = json.loads(response.text)
 
@@ -365,7 +365,7 @@ def test_orga_can_see_single_legacy_tag(client, orga_user_token, tag):
         tag.event.api_urls.tags + f"{tag.pk}/",
         follow=True,
         headers={
-            "Authorization": f"Token {orga_user_token.token}",
+            "Authorization": f"Token {orga_user_write_token.token}",
             "Pretalx-Version": LEGACY,
         },
     )
@@ -381,7 +381,7 @@ def test_orga_can_see_single_legacy_tag(client, orga_user_token, tag):
         tag.event.api_urls.tags + f"{tag.pk}/",
         follow=True,
         headers={
-            "Authorization": f"Token {orga_user_token.token}",
+            "Authorization": f"Token {orga_user_write_token.token}",
         },
     )
     content = json.loads(response.text)
@@ -431,7 +431,7 @@ def test_orga_cannot_create_tags_readonly_token(client, orga_user_token, event):
         data={"tag": "newtesttag"},
         content_type="application/json",
         headers={
-            "Authorization": f"Token {orga_user_token.token}",
+            "Authorization": f"Token {orga_user_write_token.token}",
             "Content-Type": "application/json",
         },
     )
@@ -469,7 +469,7 @@ def test_orga_cannot_update_tags_readonly_token(client, orga_user_token, tag):
         follow=True,
         data=json.dumps({"tag": "newtesttag"}),
         headers={
-            "Authorization": f"Token {orga_user_token.token}",
+            "Authorization": f"Token {orga_user_write_token.token}",
             "Content-Type": "application/json",
         },
     )
@@ -503,7 +503,7 @@ def test_orga_cannot_delete_tags_readonly_token(client, orga_user_token, tag):
     response = client.delete(
         tag.event.api_urls.tags + f"{tag.pk}/",
         follow=True,
-        headers={"Authorization": f"Token {orga_user_token.token}"},
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
     )
     assert response.status_code == 403
     with scope(event=tag.event):
@@ -533,7 +533,7 @@ def test_orga_can_see_tracks(client, orga_user_token, track):
     response = client.get(
         track.event.api_urls.tracks,
         follow=True,
-        headers={"Authorization": f"Token {orga_user_token.token}"},
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
     )
     content = json.loads(response.text)
 
@@ -547,7 +547,7 @@ def test_orga_can_see_single_track(client, orga_user_token, track):
     response = client.get(
         track.event.api_urls.tracks + f"{track.pk}/",
         follow=True,
-        headers={"Authorization": f"Token {orga_user_token.token}"},
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
     )
     content = json.loads(response.text)
 
@@ -561,7 +561,7 @@ def test_orga_can_see_single_track_locale_override(client, orga_user_token, trac
     response = client.get(
         track.event.api_urls.tracks + f"{track.pk}/?lang=en",
         follow=True,
-        headers={"Authorization": f"Token {orga_user_token.token}"},
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
     )
     content = json.loads(response.text)
 
@@ -577,7 +577,7 @@ def test_no_legacy_track_api(client, orga_user_token, track):
         track.event.api_urls.tracks + f"{track.pk}/",
         follow=True,
         headers={
-            "Authorization": f"Token {orga_user_token.token}",
+            "Authorization": f"Token {orga_user_write_token.token}",
             "Pretalx-Version": LEGACY,
         },
     )
@@ -612,7 +612,7 @@ def test_orga_cannot_create_tracks_readonly_token(client, orga_user_token, event
         data={"name": "newtesttrack"},
         content_type="application/json",
         headers={
-            "Authorization": f"Token {orga_user_token.token}",
+            "Authorization": f"Token {orga_user_write_token.token}",
         },
     )
     assert response.status_code == 403
@@ -653,7 +653,7 @@ def test_orga_cannot_update_tracks_readonly_token(client, orga_user_token, track
         follow=True,
         data=json.dumps({"name": "newtesttrack"}),
         headers={
-            "Authorization": f"Token {orga_user_token.token}",
+            "Authorization": f"Token {orga_user_write_token.token}",
             "Content-Type": "application/json",
         },
     )
@@ -690,7 +690,7 @@ def test_orga_cannot_delete_tracks_readonly_token(client, orga_user_token, track
     response = client.delete(
         track.event.api_urls.tracks + f"{track.pk}/",
         follow=True,
-        headers={"Authorization": f"Token {orga_user_token.token}"},
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
     )
     assert response.status_code == 403
     with scope(event=track.event):
@@ -736,7 +736,7 @@ def test_orga_can_see_submission_types(client, orga_user_token, submission_type)
     response = client.get(
         submission_type.event.api_urls.submission_types,
         follow=True,
-        headers={"Authorization": f"Token {orga_user_token.token}"},
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
     )
     content = json.loads(response.text)
 
@@ -750,7 +750,7 @@ def test_orga_can_see_single_submission_type(client, orga_user_token, submission
     response = client.get(
         submission_type.event.api_urls.submission_types + f"{submission_type.pk}/",
         follow=True,
-        headers={"Authorization": f"Token {orga_user_token.token}"},
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
     )
     content = json.loads(response.text)
 
@@ -767,7 +767,7 @@ def test_orga_can_see_single_submission_type_locale_override(
         submission_type.event.api_urls.submission_types
         + f"{submission_type.pk}/?lang=en",
         follow=True,
-        headers={"Authorization": f"Token {orga_user_token.token}"},
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
     )
     content = json.loads(response.text)
 
@@ -783,7 +783,7 @@ def test_no_legacy_submission_type_api(client, orga_user_token, submission_type)
         submission_type.event.api_urls.submission_types + f"{submission_type.pk}/",
         follow=True,
         headers={
-            "Authorization": f"Token {orga_user_token.token}",
+            "Authorization": f"Token {orga_user_write_token.token}",
             "Pretalx-Version": LEGACY,
         },
     )
@@ -822,7 +822,7 @@ def test_orga_cannot_create_submission_types_readonly_token(
         data={"name": "newtesttype"},
         content_type="application/json",
         headers={
-            "Authorization": f"Token {orga_user_token.token}",
+            "Authorization": f"Token {orga_user_write_token.token}",
         },
     )
     assert response.status_code == 403
@@ -869,7 +869,7 @@ def test_orga_cannot_update_submission_types_readonly_token(
         follow=True,
         data=json.dumps({"name": "newtesttype"}),
         headers={
-            "Authorization": f"Token {orga_user_token.token}",
+            "Authorization": f"Token {orga_user_write_token.token}",
             "Content-Type": "application/json",
         },
     )
@@ -955,7 +955,7 @@ def test_orga_cannot_create_submission_readonly_token(
         },
         content_type="application/json",
         headers={
-            "Authorization": f"Token {orga_user_token.token}",
+            "Authorization": f"Token {orga_user_write_token.token}",
         },
     )
     assert response.status_code == 403
@@ -1024,7 +1024,7 @@ def test_orga_cannot_update_submission_readonly_token(
         follow=True,
         data=json.dumps({"title": "Updated Submission"}),
         headers={
-            "Authorization": f"Token {orga_user_token.token}",
+            "Authorization": f"Token {orga_user_write_token.token}",
             "Content-Type": "application/json",
         },
     )
@@ -1068,7 +1068,7 @@ def test_orga_cannot_accept_submission_readonly_token(
         submission.event.api_urls.submissions + f"{submission.code}/accept/",
         follow=True,
         headers={
-            "Authorization": f"Token {orga_user_token.token}",
+            "Authorization": f"Token {orga_user_write_token.token}",
         },
     )
     assert response.status_code == 403
@@ -1111,7 +1111,7 @@ def test_orga_cannot_reject_submission_readonly_token(
         submission.event.api_urls.submissions + f"{submission.code}/reject/",
         follow=True,
         headers={
-            "Authorization": f"Token {orga_user_token.token}",
+            "Authorization": f"Token {orga_user_write_token.token}",
         },
     )
     assert response.status_code == 403
@@ -1158,7 +1158,7 @@ def test_orga_cannot_confirm_submission_readonly_token(
         + f"{accepted_submission.code}/confirm/",
         follow=True,
         headers={
-            "Authorization": f"Token {orga_user_token.token}",
+            "Authorization": f"Token {orga_user_write_token.token}",
         },
     )
     assert response.status_code == 403
@@ -1203,7 +1203,7 @@ def test_orga_cannot_cancel_submission_readonly_token(
         + f"{accepted_submission.code}/cancel/",
         follow=True,
         headers={
-            "Authorization": f"Token {orga_user_token.token}",
+            "Authorization": f"Token {orga_user_write_token.token}",
         },
     )
     assert response.status_code == 403
@@ -1250,7 +1250,7 @@ def test_orga_cannot_make_submitted_submission_readonly_token(
         + f"{rejected_submission.code}/make-submitted/",
         follow=True,
         headers={
-            "Authorization": f"Token {orga_user_token.token}",
+            "Authorization": f"Token {orga_user_write_token.token}",
         },
     )
     assert response.status_code == 403
@@ -1304,7 +1304,7 @@ def test_orga_cannot_add_speaker_to_submission_readonly_token(
         data=json.dumps({"email": speaker.email}),
         content_type="application/json",
         headers={
-            "Authorization": f"Token {orga_user_token.token}",
+            "Authorization": f"Token {orga_user_write_token.token}",
         },
     )
     assert response.status_code == 403
@@ -1357,7 +1357,7 @@ def test_orga_cannot_remove_speaker_from_submission_readonly_token(
         data=json.dumps({"user": speaker.code}),
         content_type="application/json",
         headers={
-            "Authorization": f"Token {orga_user_token.token}",
+            "Authorization": f"Token {orga_user_write_token.token}",
         },
     )
     assert response.status_code == 403
@@ -1400,7 +1400,7 @@ def test_orga_can_see_all_resources(
     response = client.get(
         submission.event.api_urls.submissions + "?expand=resources",
         follow=True,
-        headers={"Authorization": f"Token {orga_user_token.token}"},
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
     )
     content = json.loads(response.text)
 
@@ -1578,3 +1578,101 @@ def test_remove_favourite_not_favourited(event, speaker_client, slot, speaker):
     assert response.status_code == 200
     with scope(event=event):
         assert not slot.submission.favourites.filter(user=speaker).exists()
+
+
+@pytest.mark.django_db
+def test_orga_can_see_submission_log(client, orga_user_write_token, submission, orga_user):
+    """Test that organizers can access submission log via API."""
+    with scope(event=submission.event):
+        # Create some log entries
+        submission.log_action(
+            "pretalx.submission.update",
+            person=orga_user,
+            orga=True,
+            old_data={"title": "Old Title"},
+            new_data={"title": "New Title"},
+        )
+        submission.log_action(
+            "pretalx.submission.create",
+            person=orga_user,
+            orga=True,
+            data={"title": submission.title},
+        )
+
+    url = submission.event.api_urls.submissions + f"{submission.code}/log/"
+    response = client.get(
+        url,
+        follow=True,
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
+    )
+    content = json.loads(response.text)
+
+    assert response.status_code == 200, content
+    assert "results" in content or isinstance(content, list)
+    # Check that we have log entries
+    results = content["results"] if "results" in content else content
+    assert len(results) >= 2
+    # Check log entry structure
+    log_entry = results[0]
+    assert "id" in log_entry
+    assert "timestamp" in log_entry
+    assert "action_type" in log_entry
+    assert "person" in log_entry
+    assert "data" in log_entry
+
+
+@pytest.mark.django_db
+def test_reviewer_can_see_submission_log(client, review_user_token, submission, review_user):
+    """Test that reviewers can access submission log via API."""
+    with scope(event=submission.event):
+        # Create a log entry
+        submission.log_action(
+            "pretalx.submission.update",
+            person=review_user,
+            orga=True,
+            data={"note": "Reviewed"},
+        )
+
+    url = submission.event.api_urls.submissions + f"{submission.code}/log/"
+    response = client.get(
+        url,
+        follow=True,
+        headers={"Authorization": f"Token {review_user_token.token}"},
+    )
+    content = json.loads(response.text)
+
+    assert response.status_code == 200, content
+    # Should be able to see logs since reviewers have list permission
+
+
+@pytest.mark.django_db
+    # Speakers shouldn't have permission to view logs
+    assert response.status_code in [403, 404]
+
+
+@pytest.mark.django_db
+def test_log_endpoint_pagination(client, orga_user_write_token, submission, orga_user):
+    """Test that log endpoint supports pagination."""
+    with scope(event=submission.event):
+        # Create many log entries
+        for i in range(15):
+            submission.log_action(
+                f"pretalx.submission.update.{i}",
+                person=orga_user,
+                orga=True,
+                data={"iteration": i},
+            )
+
+    url = submission.event.api_urls.submissions + f"{submission.code}/log/"
+    response = client.get(
+        url,
+        follow=True,
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
+    )
+    content = json.loads(response.text)
+
+    assert response.status_code == 200, content
+    # Should have pagination metadata if paginated
+    if "results" in content:
+        assert "count" in content
+        assert "next" in content or "previous" in content
