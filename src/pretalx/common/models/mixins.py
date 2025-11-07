@@ -65,6 +65,21 @@ class LogMixin:
                     data[key] = "********" if value else value
 
         from pretalx.common.models import ActivityLog
+        import json
+        import logging
+
+        # Test if data can be JSON serialized before attempting to create the log
+        if data is not None:
+            try:
+                json.dumps(data)
+            except (TypeError, ValueError) as e:
+                # If JSON serialization fails, log warning and create without data
+                logger = logging.getLogger(__name__)
+                logger.warning(
+                    f"Failed to serialize data for {action} on {type(self).__name__}: {e}. "
+                    "Logging without detailed data."
+                )
+                data = None
 
         return ActivityLog.objects.create(
             event=getattr(self, "event", None),
