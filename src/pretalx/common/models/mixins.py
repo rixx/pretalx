@@ -31,7 +31,7 @@ class LogMixin:
     log_parent = None
 
     def log_action(
-        self, action, data=None, person=None, orga=False, content_object=None
+        self, action, data=None, person=None, orga=False, content_object=None, old_data=None, new_data=None
     ):
         if not self.pk or not isinstance(self.pk, int):
             return
@@ -41,6 +41,18 @@ class LogMixin:
                 action = f"{self.log_prefix}{action}"
             else:
                 return
+
+        # If old_data and new_data are provided, compute changes
+        if old_data is not None and new_data is not None:
+            changes = self._compute_changes(old_data, new_data)
+            if not changes and not data:
+                # No changes detected and no explicit data, skip logging
+                return
+            if changes:
+                # Store changes in the data dict
+                if data is None:
+                    data = {}
+                data["changes"] = changes
 
         if data:
             if not isinstance(data, dict):
@@ -62,6 +74,82 @@ class LogMixin:
             data=data,
             is_orga_action=orga,
         )
+
+    def _compute_changes(self, old_data, new_data):
+        """Compute changes between old and new data dictionaries.
+
+        Returns a dict of changes in the format:
+        {"field_name": {"old": old_value, "new": new_value}}
+        """
+        changes = {}
+
+        # Check all fields that exist in either old or new data
+        all_keys = set(old_data.keys()) | set(new_data.keys())
+
+        for key in all_keys:
+            old_value = old_data.get(key)
+            new_value = new_data.get(key)
+
+            # Skip if values are the same
+            if old_value == new_value:
+                continue
+
+            changes[key] = {
+                "old": old_value,
+                "new": new_value
+            }
+
+        return changes
+
+    def _get_instance_data(self):
+        """Get a dictionary of field values for this instance.
+
+        Used for change tracking in log_action. Excludes auto-updated
+        fields like timestamps and sensitive data.
+        """
+        from django.db import models
+        from i18nfield.fields import I18nCharField, I18nTextField
+
+        data = {}
+        excluded_fields = {'created', 'updated', 'password'}
+
+        for field in self._meta.fields:
+            if field.name in excluded_fields:
+                continue
+
+            # Skip auto-generated or auto-updated fields
+            if getattr(field, 'auto_now', False) or getattr(field, 'auto_now_add', False):
+                continue
+
+            value = getattr(self, field.name, None)
+
+            # Handle special field types
+            if isinstance(field, (I18nCharField, I18nTextField)):
+                # I18n fields have a .data attribute that contains the dict
+                if hasattr(value, 'data'):
+                    data[field.name] = value.data
+                else:
+                    data[field.name] = value
+            elif isinstance(field, models.ForeignKey):
+                # Store foreign key as ID
+                if value is not None:
+                    data[field.name] = value.pk
+                else:
+                    data[field.name] = None
+            elif isinstance(field, models.FileField):
+                # Store file field as name/path
+                if value:
+                    data[field.name] = value.name
+                else:
+                    data[field.name] = None
+            else:
+                # For other fields, store the value directly
+                data[field.name] = value
+
+        # Note: ManyToMany fields are excluded as they are handled separately
+        # and their changes are typically logged via through model changes
+
+        return data
 
     def logged_actions(self):
         from pretalx.common.models import ActivityLog

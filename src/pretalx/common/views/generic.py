@@ -357,11 +357,30 @@ class CRUDView(PaginationMixin, Filterable, View):
         )
 
     def form_valid(self, form):
+        # Capture old state before saving (for updates only)
+        old_data = None
+        if self.object and hasattr(self.object, '_get_instance_data'):
+            if self.object.pk:  # Only capture for existing objects (updates)
+                old_data = self.object._get_instance_data()
+
         self.object = form.save()
+
         if message := self.messages.get(self.action):
             messages.success(self.request, message)
+
         if form.has_changed():
-            self.object.log_action(f".{self.action}", **self.get_log_kwargs())
+            # Capture new state after saving
+            new_data = None
+            if hasattr(self.object, '_get_instance_data'):
+                new_data = self.object._get_instance_data()
+
+            log_kwargs = self.get_log_kwargs()
+            if old_data is not None and new_data is not None:
+                log_kwargs['old_data'] = old_data
+                log_kwargs['new_data'] = new_data
+
+            self.object.log_action(f".{self.action}", **log_kwargs)
+
         return HttpResponseRedirect(self.get_success_url())
 
     def form_invalid(self, form):
