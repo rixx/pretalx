@@ -1,5 +1,9 @@
 # CLAUDE.md
 
+**Note**: This project uses [bd (beads)](https://github.com/steveyegge/beads) for issue tracking. Use `bd` commands instead of markdown TODOs. See AGENTS.md for workflow details.
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 ## Project Overview
 
 pretalx is a conference planning tool built with Django that handles call for participation (CfP), submission review, scheduling, and conference management. It's a production-ready application used by many events worldwide.

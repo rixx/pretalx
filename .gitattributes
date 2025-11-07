@@ -4,3 +4,6 @@
 src/pretalx/static/vendored/* linguist-vendored
 doc/* linguist-documentation
 *.py diff=python
+
+# Use bd merge for beads JSONL files
+.beads/beads.jsonl merge=beads

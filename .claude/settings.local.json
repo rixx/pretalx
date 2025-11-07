@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_beads_beads__set_context",
+      "mcp__plugin_beads_beads__init",
+      "mcp__plugin_beads_beads__create",
+      "mcp__plugin_beads_beads__dep",
+      "mcp__plugin_beads_beads__list",
+      "mcp__plugin_beads_beads__update",
+      "mcp__plugin_beads_beads__ready",
+      "mcp__plugin_beads_beads__show",
+      "Bash(bd show:*)",
+      "Bash(bd dep --help:*)",
+      "Bash(bd help:*)",
+      "Bash(bd list:*)",
+      "Bash(bd dep tree:*)",
+      "Bash(sqlite3:*)"
+    ],
+    "deny": [],
+    "ask": []
+  },
+  "enabledMcpjsonServers": [
+    "beads"
+  ]
+}
