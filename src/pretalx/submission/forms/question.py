@@ -104,5 +104,64 @@ class QuestionsForm(CfPFormMixin, QuestionFieldsMixin, forms.Form):
         ]
 
     def save(self):
+        from pretalx.submission.models import QuestionTarget
+
+        # Determine the parent object that should receive the log
+        if self.target_type == QuestionTarget.SUBMISSION:
+            parent_object = self.submission
+        elif self.target_type == QuestionTarget.SPEAKER:
+            parent_object = self.speaker
+        elif self.target_type == QuestionTarget.REVIEWER:
+            parent_object = self.review
+        else:
+            parent_object = None
+
+        # Capture old state for all answers before making changes
+        old_answers = {}
+        for key, field in self.fields.items():
+            if hasattr(field, 'question'):
+                question = field.question
+                if hasattr(field, 'answer') and field.answer:
+                    old_answers[question.pk] = field.answer.answer_string
+                else:
+                    old_answers[question.pk] = None
+
+        # Apply changes
         for key, value in self.cleaned_data.items():
             self.save_questions(key, value)
+
+        # Collect changes by refreshing answers from parent object
+        changes = {}
+        if parent_object:
+            # Refresh answers from DB to get the updated state
+            parent_object.refresh_from_db()
+            for key, field in self.fields.items():
+                if not hasattr(field, 'question'):
+                    continue
+
+                question = field.question
+                old_value = old_answers.get(question.pk)
+
+                # Find the new answer from the parent object
+                new_value = None
+                for answer in parent_object.answers.all():
+                    if answer.question_id == question.pk:
+                        new_value = answer.answer_string
+                        break
+
+                # Check if there was a change
+                if old_value != new_value:
+                    question_label = str(question.question)
+                    changes[question_label] = {
+                        'old': old_value,
+                        'new': new_value,
+                    }
+
+        # Log all changes as one entry on the parent object if there are any changes
+        if changes and parent_object:
+            parent_object.log_action(
+                "pretalx.question.answer.update",
+                data={'question_changes': changes},
+                person=getattr(self, 'user', None),
+                orga=getattr(self, 'is_orga', False),
+            )
