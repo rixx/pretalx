@@ -101,12 +101,45 @@ class LogMixin:
 
         return changes
 
+    def _make_json_serializable(self, value):
+        """Recursively ensure a value is JSON serializable."""
+        import json
+        from decimal import Decimal
+
+        # Import LazyI18nString to check for it
+        try:
+            from i18nfield.strings import LazyI18nString
+            if isinstance(value, LazyI18nString):
+                return str(value)
+        except ImportError:
+            pass
+
+        if value is None:
+            return None
+        elif isinstance(value, Decimal):
+            return str(value)
+        elif isinstance(value, dict):
+            return {k: self._make_json_serializable(v) for k, v in value.items()}
+        elif isinstance(value, (list, tuple)):
+            return [self._make_json_serializable(v) for v in value]
+        elif isinstance(value, (str, int, float, bool)):
+            return value
+        else:
+            # For any other type, try JSON serialization test
+            try:
+                json.dumps(value)
+                return value
+            except (TypeError, ValueError):
+                # If it can't be serialized, convert to string
+                return str(value)
+
     def _get_instance_data(self):
         """Get a dictionary of field values for this instance.
 
         Used for change tracking in log_action. Excludes auto-updated
         fields like timestamps and sensitive data.
         """
+        from decimal import Decimal
         from django.db import models
         from i18nfield.fields import I18nCharField, I18nTextField
 
@@ -127,9 +160,10 @@ class LogMixin:
             if isinstance(field, (I18nCharField, I18nTextField)):
                 # I18n fields have a .data attribute that contains the dict
                 if hasattr(value, 'data'):
-                    data[field.name] = value.data
+                    # Recursively ensure the dict is JSON serializable
+                    data[field.name] = self._make_json_serializable(value.data)
                 else:
-                    data[field.name] = value
+                    data[field.name] = str(value) if value is not None else None
             elif isinstance(field, models.ForeignKey):
                 # Store foreign key as ID
                 if value is not None:
@@ -142,9 +176,13 @@ class LogMixin:
                     data[field.name] = value.name
                 else:
                     data[field.name] = None
-            else:
-                # For other fields, store the value directly
+            elif hasattr(field, 'choices') and field.choices:
+                # CharField/IntegerField with choices - store the actual value, not the display value
+                # This avoids LazyI18nString issues from _() translated choice display values
                 data[field.name] = value
+            else:
+                # For other fields, ensure JSON serializability
+                data[field.name] = self._make_json_serializable(value)
 
         # Note: ManyToMany fields are excluded as they are handled separately
         # and their changes are typically logged via through model changes

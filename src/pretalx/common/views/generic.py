@@ -358,10 +358,11 @@ class CRUDView(PaginationMixin, Filterable, View):
 
     def form_valid(self, form):
         # Capture old state before saving (for updates only)
+        # Get a fresh copy from DB to avoid issues with form binding to the same object
         old_data = None
-        if self.object and hasattr(self.object, '_get_instance_data'):
-            if self.object.pk:  # Only capture for existing objects (updates)
-                old_data = self.object._get_instance_data()
+        if self.object and self.object.pk and hasattr(self.object, '_get_instance_data'):
+            fresh_instance = self.object.__class__.objects.get(pk=self.object.pk)
+            old_data = fresh_instance._get_instance_data()
 
         self.object = form.save()
 
