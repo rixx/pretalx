@@ -36,7 +36,6 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
                         {% if log.json_data.changes or log.json_data.question_changes %}
                             <a href="{% url 'orga:event.history.detail' event=log.event.slug pk=log.pk %}"
                                class="btn btn-xs btn-info"
-                               style="margin-left: 0.25rem;"
                                title="{% translate 'View detailed changes' %}">
                                 <i class="fa fa-search"></i>
                             </a>
@@ -46,36 +45,4 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
             {% endfor %}
         </ul>
     </div>
-
-    <style>
-        .history-sidebar {
-            margin-top: 1rem;
-        }
-        .history-sidebar .card-header {
-            padding: 0.5rem 1rem;
-            background-color: #f8f9fa;
-        }
-        .history-sidebar .card-title {
-            margin: 0;
-            font-size: 1rem;
-            font-weight: 600;
-        }
-        .history-sidebar .logentry.compact {
-            padding: 0.5rem 1rem;
-            font-size: 0.875rem;
-        }
-        .history-sidebar .log-time {
-            margin-bottom: 0.25rem;
-        }
-        .history-sidebar .log-person {
-            margin-bottom: 0.25rem;
-        }
-        .history-sidebar .log-text {
-            color: #495057;
-        }
-        .history-sidebar .btn-xs {
-            padding: 0.125rem 0.25rem;
-            font-size: 0.75rem;
-        }
-    </style>
 {% endif %}

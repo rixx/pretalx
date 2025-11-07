@@ -134,7 +134,8 @@ class Command(BaseCommand):
                 self.stdout.write(f"Creating archive: {archive_file_path}")
                 archive_file = gzip.open(archive_file_path, "wt", encoding="utf-8")
 
-            # Process logs
+            # Process logs - cache all IDs upfront for efficient batching
+            all_ids = list(queryset.values_list("id", flat=True))
             deleted_count = 0
             archived_count = 0
             processed = 0
@@ -142,10 +143,7 @@ class Command(BaseCommand):
             try:
                 # Process in batches
                 while processed < total_count:
-                    # Get batch of IDs to avoid holding large queryset in memory
-                    batch_ids = list(
-                        queryset.values_list("id", flat=True)[processed:processed + batch_size]
-                    )
+                    batch_ids = all_ids[processed:processed + batch_size]
 
                     if not batch_ids:
                         break

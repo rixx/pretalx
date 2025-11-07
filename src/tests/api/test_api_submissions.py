@@ -147,7 +147,7 @@ def test_orga_can_see_all_submissions(
     response = client.get(
         submission.event.api_urls.submissions + "?questions=all",
         follow=True,
-        headers={"Authorization": f"Token {orga_user_write_token.token}"},
+        headers={"Authorization": f"Token {orga_user_token.token}"},
     )
     content = json.loads(response.text)
 
@@ -1642,12 +1642,6 @@ def test_reviewer_can_see_submission_log(client, review_user_token, submission, 
     content = json.loads(response.text)
 
     assert response.status_code == 200, content
-    # Should be able to see logs since reviewers have list permission
-
-
-@pytest.mark.django_db
-    # Speakers shouldn't have permission to view logs
-    assert response.status_code in [403, 404]
 
 
 @pytest.mark.django_db
