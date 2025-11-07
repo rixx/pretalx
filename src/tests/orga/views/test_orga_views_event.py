@@ -996,3 +996,140 @@ def test_event_history_detail_view_scoping(orga_client, orga_user, event, other_
     response = orga_client.get(url, follow=True)
     # Should return 404 since the log doesn't belong to this event
     assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_event_history_filter_by_object_type(orga_client, event, submission, orga_user):
+    """Test filtering event history by object type."""
+    from django.contrib.contenttypes.models import ContentType
+
+    with scope(event=event):
+        # Create logs for different object types
+        submission.log_action(
+            "pretalx.submission.update",
+            person=orga_user,
+            orga=True,
+            data={"title": "Test"},
+        )
+        event.log_action(
+            "pretalx.event.update",
+            person=orga_user,
+            orga=True,
+            data={"name": "Test Event"},
+        )
+
+        submission_ct = ContentType.objects.get_for_model(submission)
+
+    # Filter by submission content type
+    url = f"{event.orga_urls.base}history/?object_type={submission_ct.id}"
+    response = orga_client.get(url, follow=True)
+    assert response.status_code == 200
+    # Should show submission log but not event log
+    assert "pretalx.submission" in response.text or "proposal" in response.text.lower()
+
+
+@pytest.mark.django_db
+def test_event_history_filter_by_action_type(orga_client, event, submission, orga_user):
+    """Test filtering event history by action type."""
+    with scope(event=event):
+        # Create logs with different action types
+        submission.log_action(
+            "pretalx.submission.create",
+            person=orga_user,
+            orga=True,
+            data={"title": submission.title},
+        )
+        submission.log_action(
+            "pretalx.submission.update",
+            person=orga_user,
+            orga=True,
+            old_data={"title": "Old"},
+            new_data={"title": "New"},
+        )
+
+    # Filter by create action
+    url = f"{event.orga_urls.base}history/?action_type=pretalx.submission.create"
+    response = orga_client.get(url, follow=True)
+    assert response.status_code == 200
+    # Should show create log
+    assert "create" in response.text.lower() or "added" in response.text.lower()
+
+
+@pytest.mark.django_db
+def test_event_history_filter_combined(orga_client, event, submission, orga_user):
+    """Test filtering event history by both object and action type."""
+    from django.contrib.contenttypes.models import ContentType
+
+    with scope(event=event):
+        # Create various logs
+        submission.log_action(
+            "pretalx.submission.create",
+            person=orga_user,
+            orga=True,
+            data={"title": submission.title},
+        )
+        submission.log_action(
+            "pretalx.submission.update",
+            person=orga_user,
+            orga=True,
+            data={"title": "Updated"},
+        )
+        event.log_action(
+            "pretalx.event.update",
+            person=orga_user,
+            orga=True,
+            data={"name": "Updated Event"},
+        )
+
+        submission_ct = ContentType.objects.get_for_model(submission)
+
+    # Filter by submission content type AND create action
+    url = (
+        f"{event.orga_urls.base}history/"
+        f"?object_type={submission_ct.id}&action_type=pretalx.submission.create"
+    )
+    response = orga_client.get(url, follow=True)
+    assert response.status_code == 200
+    # Should only show submission create log
+
+
+@pytest.mark.django_db
+def test_event_history_filter_form_display(orga_client, event, submission, orga_user):
+    """Test that filter form is displayed on history page."""
+    with scope(event=event):
+        submission.log_action(
+            "pretalx.submission.create",
+            person=orga_user,
+            orga=True,
+            data={"title": submission.title},
+        )
+
+    url = f"{event.orga_urls.base}history/"
+    response = orga_client.get(url, follow=True)
+    assert response.status_code == 200
+    # Check for filter form elements
+    assert "object_type" in response.text or "Object type" in response.text
+    assert "action_type" in response.text or "Action type" in response.text
+    assert "Filter" in response.text
+
+
+@pytest.mark.django_db
+def test_event_history_clear_filters(orga_client, event, submission, orga_user):
+    """Test that clear filters link appears when filters are active."""
+    from django.contrib.contenttypes.models import ContentType
+
+    with scope(event=event):
+        submission.log_action(
+            "pretalx.submission.create",
+            person=orga_user,
+            orga=True,
+            data={"title": submission.title},
+        )
+
+        submission_ct = ContentType.objects.get_for_model(submission)
+
+    # With filter
+    url = f"{event.orga_urls.base}history/?object_type={submission_ct.id}"
+    response = orga_client.get(url, follow=True)
+    assert response.status_code == 200
+    assert "Clear filters" in response.text or "clear" in response.text.lower()

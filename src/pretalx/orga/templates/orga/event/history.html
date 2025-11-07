@@ -16,7 +16,36 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
 
 {% block content %}
     <h2>{% translate "Event History" %}</h2>
+
+    {% if filter_form %}
+        <div class="filter-group">
+            <form class="search-form" role="search">
+                {{ filter_form.object_type.as_field_group }}
+                {{ filter_form.action_type.as_field_group }}
+                <button class="btn btn-info" type="submit">
+                    <i class="fa fa-filter"></i>
+                    {% translate "Filter" %}
+                </button>
+                {% if request.GET.object_type or request.GET.action_type %}
+                    <a href="?" class="btn btn-outline-secondary">
+                        <i class="fa fa-times"></i>
+                        {% translate "Clear filters" %}
+                    </a>
+                {% endif %}
+            </form>
+        </div>
+    {% endif %}
+
     <div class="dashboard-history">
+        {% if page_obj %}
+            <p class="text-muted">
+                {% blocktranslate count count=page_obj.paginator.count trimmed %}
+                    {{ count }} log entry
+                {% plural %}
+                    {{ count }} log entries
+                {% endblocktranslate %}
+            </p>
+        {% endif %}
 
         {% include "common/logs.html" with entries=log_entries %}
         {% include "orga/includes/pagination.html" %}
