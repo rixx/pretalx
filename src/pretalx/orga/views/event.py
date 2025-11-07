@@ -22,7 +22,7 @@ from django.utils.safestring import mark_safe
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy
-from django.views.generic import FormView, ListView, TemplateView, UpdateView, View
+from django.views.generic import DetailView, FormView, ListView, TemplateView, UpdateView, View
 from django_context_decorator import context
 from django_minify_html.decorators import no_html_minification
 from django_scopes import scope, scopes_disabled
@@ -283,6 +283,37 @@ class EventHistory(EventSettingsPermission, ListView):
 
     def get_queryset(self):
         return ActivityLog.objects.filter(event=self.request.event)
+
+
+class EventHistoryDetail(EventSettingsPermission, DetailView):
+    template_name = "orga/event/history_detail.html"
+    model = ActivityLog
+    context_object_name = "log"
+    pk_url_kwarg = "pk"
+
+    def get_queryset(self):
+        return ActivityLog.objects.filter(event=self.request.event)
+
+    @context
+    def changes(self):
+        """Parse and return the changes from the log data."""
+        if not self.object:
+            return {}
+
+        data = self.object.json_data
+        if not data:
+            return {}
+
+        # Check if this is the new format with a 'changes' key
+        if 'changes' in data:
+            return data['changes']
+
+        # Check if this is question answer changes format
+        if 'question_changes' in data:
+            return data['question_changes']
+
+        # Legacy format: return data as-is for display
+        return data
 
 
 class EventReviewSettings(EventSettingsPermission, ActionFromUrl, FormView):

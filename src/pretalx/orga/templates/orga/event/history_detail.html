@@ -1,0 +1,196 @@
+<!--
+SPDX-FileCopyrightText: 2025-present Tobias Kunze
+SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
+-->
+
+{% extends "orga/base.html" %}
+
+{% load i18n %}
+{% load static %}
+
+{% block extra_title %}{% translate "Activity Log Detail" %} :: {% endblock extra_title %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{% static "orga/css/ui/history.css" %}">
+    <style>
+        .log-detail-header {
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .log-meta {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+        .log-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .changes-container {
+            margin-top: 2rem;
+        }
+        .change-item {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: 0.25rem;
+        }
+        .change-field-name {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #495057;
+        }
+        .change-values {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .change-value {
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            border: 1px solid #dee2e6;
+            background-color: white;
+        }
+        .change-value-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .change-value-label.old {
+            color: #dc3545;
+        }
+        .change-value-label.new {
+            color: #28a745;
+        }
+        .change-value-content {
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .change-value-content.empty {
+            color: #6c757d;
+            font-style: italic;
+        }
+        .change-value.old {
+            background-color: #fff5f5;
+            border-color: #f8d7da;
+        }
+        .change-value.new {
+            background-color: #f0fff4;
+            border-color: #c3e6cb;
+        }
+        .legacy-data-notice {
+            padding: 1rem;
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+        }
+        .no-changes {
+            padding: 2rem;
+            text-align: center;
+            color: #6c757d;
+            background-color: #f8f9fa;
+            border-radius: 0.25rem;
+        }
+        @media (max-width: 768px) {
+            .change-values {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+{% endblock stylesheets %}
+
+{% block content %}
+    <div class="log-detail-header">
+        <h2>{% translate "Activity Log Detail" %}</h2>
+        <div class="log-meta">
+            <div class="log-meta-item">
+                <i class="fa fa-clock-o"></i>
+                <span>{{ log.timestamp|date:"DATETIME_FORMAT" }}</span>
+            </div>
+            {% if log.person %}
+            <div class="log-meta-item">
+                {% if log.is_orga_action %}
+                    <i class="fa fa-check-circle fa-fw text-success" title="{% translate 'This change was performed by an event organiser.' %}"></i>
+                {% else %}
+                    <i class="fa fa-user fa-fw"></i>
+                {% endif %}
+                {% include "orga/includes/user_name.html" with user=log.person lightbox=True %}
+            </div>
+            {% endif %}
+            <div class="log-meta-item">
+                <i class="fa fa-flag"></i>
+                <span>{{ log.display }}</span>
+            </div>
+            {% if log.display_object %}
+            <div class="log-meta-item">
+                <span>{{ log.display_object|safe }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="changes-container">
+        {% if log.legacy_data and not log.data %}
+            <div class="legacy-data-notice">
+                <i class="fa fa-info-circle"></i>
+                {% translate "This is a legacy log entry. Detailed change tracking was not available when this action was logged." %}
+            </div>
+        {% endif %}
+
+        {% if changes %}
+            <h3>{% translate "Changes" %}</h3>
+            {% for field, change in changes.items %}
+                <div class="change-item">
+                    <div class="change-field-name">
+                        {{ field }}
+                    </div>
+                    <div class="change-values">
+                        <div class="change-value old">
+                            <div class="change-value-label old">
+                                {% translate "Before" %}
+                            </div>
+                            <div class="change-value-content {% if not change.old %}empty{% endif %}">
+                                {% if change.old %}
+                                    {{ change.old }}
+                                {% else %}
+                                    {% translate "(empty)" %}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="change-value new">
+                            <div class="change-value-label new">
+                                {% translate "After" %}
+                            </div>
+                            <div class="change-value-content {% if not change.new %}empty{% endif %}">
+                                {% if change.new %}
+                                    {{ change.new }}
+                                {% else %}
+                                    {% translate "(empty)" %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-changes">
+                <i class="fa fa-info-circle fa-2x" style="margin-bottom: 1rem;"></i>
+                <p>{% translate "No detailed change information is available for this log entry." %}</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <div style="margin-top: 2rem;">
+        <a href="{% url 'orga:event.history' event=request.event.slug %}" class="btn btn-secondary">
+            <i class="fa fa-arrow-left"></i>
+            {% translate "Back to History" %}
+        </a>
+    </div>
+{% endblock content %}

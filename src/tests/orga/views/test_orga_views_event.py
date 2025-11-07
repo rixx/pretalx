@@ -884,3 +884,114 @@ def test_widget_settings(event, orga_client):
     assert response.status_code == 200
     event = Event.objects.get(slug=event.slug)
     assert event.feature_flags["show_widget_if_not_public"]
+
+
+@pytest.mark.django_db
+def test_event_history_detail_view_with_changes(orga_client, orga_user, event, submission):
+    """Test that the history detail view displays changes correctly."""
+    with scope(event=event):
+        # Create a log entry with changes
+        log = submission.log_action(
+            "pretalx.submission.update",
+            person=orga_user,
+            orga=True,
+            old_data={"title": "Old Title", "abstract": "Old abstract"},
+            new_data={"title": "New Title", "abstract": "New abstract"},
+        )
+        log_pk = log.pk
+
+    url = f"/orga/event/{event.slug}/settings/history/{log_pk}/"
+    response = orga_client.get(url, follow=True)
+    assert response.status_code == 200
+    assert "Changes" in response.text
+    assert "Old Title" in response.text
+    assert "New Title" in response.text
+
+
+@pytest.mark.django_db
+def test_event_history_detail_view_requires_permission(client, orga_user, event, submission):
+    """Test that the history detail view requires write permissions."""
+    with scope(event=event):
+        log = submission.log_action(
+            "pretalx.submission.update",
+            person=orga_user,
+            orga=True,
+            old_data={"title": "Old Title"},
+            new_data={"title": "New Title"},
+        )
+        log_pk = log.pk
+
+    url = f"/orga/event/{event.slug}/settings/history/{log_pk}/"
+    response = client.get(url, follow=True)
+    # Should redirect to login or show permission denied
+    assert response.status_code in [200, 403]
+    if response.status_code == 200:
+        # Check that we're on the login page
+        assert "login" in response.request["PATH_INFO"].lower() or "sign in" in response.text.lower()
+
+
+@pytest.mark.django_db
+def test_event_history_detail_view_question_changes(orga_client, orga_user, event, submission, question):
+    """Test that the history detail view displays question answer changes."""
+    with scope(event=event):
+        # Create a log entry with question changes
+        log = submission.log_action(
+            "pretalx.question.answer.update",
+            person=orga_user,
+            orga=True,
+            data={
+                "question_changes": {
+                    "Favorite Color": {"old": "Blue", "new": "Red"},
+                    "Biography": {"old": "Old bio", "new": "New bio"},
+                }
+            },
+        )
+        log_pk = log.pk
+
+    url = f"/orga/event/{event.slug}/settings/history/{log_pk}/"
+    response = orga_client.get(url, follow=True)
+    assert response.status_code == 200
+    assert "Favorite Color" in response.text
+    assert "Blue" in response.text
+    assert "Red" in response.text
+    assert "Biography" in response.text
+
+
+@pytest.mark.django_db
+def test_event_history_detail_view_legacy_format(orga_client, orga_user, event, submission):
+    """Test that the history detail view handles legacy log entries gracefully."""
+    with scope(event=event):
+        # Create a legacy-style log entry (no changes key, just data)
+        log = submission.log_action(
+            "pretalx.submission.update",
+            person=orga_user,
+            orga=True,
+            data={"some_field": "some_value"},
+        )
+        log_pk = log.pk
+
+    url = f"/orga/event/{event.slug}/settings/history/{log_pk}/"
+    response = orga_client.get(url, follow=True)
+    assert response.status_code == 200
+    # Should show the log but indicate no detailed changes
+    assert "some_field" in response.text or "No detailed change information" in response.text
+
+
+@pytest.mark.django_db
+def test_event_history_detail_view_scoping(orga_client, orga_user, event, other_event, submission):
+    """Test that users can only view logs from their own event."""
+    with scope(event=event):
+        log = submission.log_action(
+            "pretalx.submission.update",
+            person=orga_user,
+            orga=True,
+            old_data={"title": "Old"},
+            new_data={"title": "New"},
+        )
+        log_pk = log.pk
+
+    # Try to access the log from a different event's URL
+    url = f"/orga/event/{other_event.slug}/settings/history/{log_pk}/"
+    response = orga_client.get(url, follow=True)
+    # Should return 404 since the log doesn't belong to this event
+    assert response.status_code == 404
