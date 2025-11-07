@@ -139,10 +139,31 @@ class SpeakerUpdateSerializer(SpeakerOrgaSerializer):
     def update(self, instance, validated_data):
         avatar = validated_data.pop("avatar", None)
         user_fields = validated_data.pop("user", None) or {}
+
+        # Capture old user data if there are user field changes
+        old_user_data = {}
+        if user_fields:
+            for key in user_fields.keys():
+                old_user_data[key] = getattr(instance.user, key)
+
         instance = super().update(instance, validated_data)
-        for key, value in user_fields.items():
-            setattr(instance.user, key, value)
-            instance.user.save(update_fields=[key])
+
+        # Apply user field changes
+        if user_fields:
+            for key, value in user_fields.items():
+                setattr(instance.user, key, value)
+                instance.user.save(update_fields=[key])
+
+            # Log the user profile update with changes
+            new_user_data = {key: getattr(instance.user, key) for key in user_fields.keys()}
+            instance.log_action(
+                "pretalx.user.profile.update",
+                person=self.context.get("request").user if self.context.get("request") else None,
+                orga=True,
+                old_data=old_user_data,
+                new_data=new_user_data,
+            )
+
         if avatar:
             instance.avatar.save(Path(avatar.name).name, avatar, save=False)
             instance.save(update_fields=("avatar",))
