@@ -66,7 +66,7 @@ class ReviewViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelViewSet
     # that the user has reviewed already.
     permission_map = {
         "list": "submission.list_all_review",
-        "log": "submission.orga_list_review",
+        "log": "submission.orga_view_review",
     }
 
     def get_unversioned_serializer_class(self):

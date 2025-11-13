@@ -42,10 +42,10 @@ class RoomViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelViewSet):
     serializer_class = RoomSerializer
     pagination_class = RoomPagination
     endpoint = "rooms"
+    permission_map = {"log": "schedule.orga_view_room"}
     search_fields = ("name",)
     ordering_fields = ("id", "name", "position", "capacity")
     ordering = ("position", "id")
-    permission_map = {"log": "schedule.orga_list_room"}
 
     def get_queryset(self):
         return self.event.rooms.all().select_related("event")

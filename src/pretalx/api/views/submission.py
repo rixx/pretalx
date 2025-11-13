@@ -430,10 +430,10 @@ class TagViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelViewSet):
     serializer_class = TagSerializer
     queryset = Tag.objects.none()
     endpoint = "tags"
+    permission_map = {"log": "submission.orga_view_tag"}
     search_fields = ("tag",)
     ordering_fields = ("id", "tag")
     ordering = ("id",)
-    permission_map = {"log": "submission.orga_list_tag"}
 
     def get_queryset(self):
         return self.event.tags.all().order_by("pk")
@@ -453,10 +453,10 @@ class SubmissionTypeViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.Mode
     serializer_class = SubmissionTypeSerializer
     queryset = SubmissionType.objects.none()
     endpoint = "submission-types"
+    permission_map = {"log": "submission.orga_view_submissionType"}
     search_fields = ("name",)
     ordering_fields = ("id", "name", "default_duration")
     ordering = ("id",)
-    permission_map = {"log": "submission.orga_list_submissionType"}
 
     def get_queryset(self):
         return self.event.submission_types.all()
@@ -474,10 +474,10 @@ class TrackViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelViewSet)
     serializer_class = TrackSerializer
     queryset = Track.objects.none()
     endpoint = "tracks"
+    permission_map = {"log": "submission.orga_view_track"}
     search_fields = ("name",)
     ordering_fields = ("id", "name")
     ordering = ("id",)
-    permission_map = {"log": "submission.orga_list_track"}
 
     def get_queryset(self):
         return self.event.tracks.all()

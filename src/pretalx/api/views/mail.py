@@ -24,10 +24,10 @@ class MailTemplateViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelV
     serializer_class = MailTemplateSerializer
     queryset = MailTemplate.objects.none()
     endpoint = "mail-templates"
+    permission_map = {"log": "mail.orga_view_mailTemplate"}
     search_fields = ("role", "subject")
     ordering_fields = ("id", "subject")
     ordering = ("id",)
-    permission_map = {"log": "mail.orga_list_mailTemplate"}
 
     def get_queryset(self):
         return self.event.mail_templates.all().select_related("event").order_by("pk")

@@ -56,7 +56,7 @@ class TeamViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelViewSet):
     serializer_class = TeamSerializer
     queryset = Team.objects.none()
     endpoint = "teams"
-    permission_map = {"log": "person.orga_list_team"}
+    permission_map = {"log": "person.orga_view_team"}
     search_fields = ("name",)
     ordering_fields = ("id", "name")
     ordering = ("id",)

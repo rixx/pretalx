@@ -36,7 +36,7 @@ class SpeakerInformationViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.
     ordering = ("id",)
     permission_map = {
         "retrieve": "person.orga_view_speakerinformation",
-        "log": "person.orga_list_speakerInformation",
+        "log": "person.orga_view_speakerinformation",
     }
 
     def get_queryset(self):

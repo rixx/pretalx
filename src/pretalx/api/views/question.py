@@ -64,7 +64,7 @@ class QuestionViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelViewS
     )
     ordering = ("position", "id")
     endpoint = "questions"
-    permission_map = {"log": "submission.orga_list_question"}
+    permission_map = {"log": "submission.orga_view_question"}
 
     def get_queryset(self):
         queryset = questions_for_user(self.event, self.request.user).select_related(
@@ -143,7 +143,7 @@ class AnswerOptionViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelV
     ordering_fields = ("id", "answer")
     ordering = ("id",)
     endpoint = "question-options"
-    permission_map = {"log": "submission.orga_list_answerOption"}
+    permission_map = {"log": "submission.orga_view_answerOption"}
 
     def get_queryset(self):
         questions = questions_for_user(self.event, self.request.user)
