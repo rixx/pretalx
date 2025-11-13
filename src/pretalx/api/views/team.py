@@ -16,7 +16,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from pretalx.api.documentation import build_expand_docs, build_search_docs
-from pretalx.api.mixins import PretalxViewSetMixin
+from pretalx.api.mixins import ActivityLogMixin, PretalxViewSetMixin
 from pretalx.api.serializers.team import TeamInviteSerializer, TeamSerializer
 from pretalx.event.models import Team, TeamInvite
 from pretalx.event.models.organiser import check_access_permissions
@@ -52,10 +52,11 @@ class TeamMemberRemoveSerializer(serializers.Serializer):
     ),
     destroy=extend_schema(summary="Delete Team", tags=["teams"]),
 )
-class TeamViewSet(PretalxViewSetMixin, viewsets.ModelViewSet):
+class TeamViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelViewSet):
     serializer_class = TeamSerializer
     queryset = Team.objects.none()
     endpoint = "teams"
+    permission_map = {"log": "person.orga_list_team"}
     search_fields = ("name",)
     ordering_fields = ("id", "name")
     ordering = ("id",)

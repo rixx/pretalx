@@ -19,7 +19,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from pretalx.api.documentation import build_expand_docs, build_search_docs
-from pretalx.api.mixins import PretalxViewSetMixin
+from pretalx.api.mixins import ActivityLogMixin, PretalxViewSetMixin
 from pretalx.api.serializers.legacy import (
     LegacySubmissionOrgaSerializer,
     LegacySubmissionReviewerSerializer,
@@ -148,7 +148,7 @@ with scopes_disabled():
         responses={200: SubmissionOrgaSerializer},
     ),
 )
-class SubmissionViewSet(PretalxViewSetMixin, viewsets.ModelViewSet):
+class SubmissionViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelViewSet):
     serializer_class = SubmissionSerializer
     queryset = Submission.objects.none()
     lookup_field = "code__iexact"
@@ -364,27 +364,6 @@ class SubmissionViewSet(PretalxViewSetMixin, viewsets.ModelViewSet):
         submission.refresh_from_db()
         return Response(SubmissionOrgaSerializer(submission).data)
 
-    @action(detail=True, methods=["GET"], url_path="log")
-    def log(self, request, **kwargs):
-        """Return activity log entries for this submission.
-
-        Uses the submission's logged_actions() method to avoid expensive
-        generic foreign key resolution. Returns paginated log entries.
-        """
-        from pretalx.api.serializers.log import ActivityLogSerializer
-
-        submission = self.get_object()
-        logs = submission.logged_actions().select_related("person", "event")
-
-        # Use DRF's pagination
-        page = self.paginate_queryset(logs)
-        if page is not None:
-            serializer = ActivityLogSerializer(page, many=True, context=self.get_serializer_context())
-            return self.get_paginated_response(serializer.data)
-
-        serializer = ActivityLogSerializer(logs, many=True, context=self.get_serializer_context())
-        return Response(serializer.data)
-
 
 @extend_schema(
     summary="List favourite submissions",
@@ -447,13 +426,14 @@ def favourite_view(request, event, code):
     partial_update=extend_schema(summary="Update Tags (Partial Update)"),
     destroy=extend_schema(summary="Delete Tags"),
 )
-class TagViewSet(PretalxViewSetMixin, viewsets.ModelViewSet):
+class TagViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelViewSet):
     serializer_class = TagSerializer
     queryset = Tag.objects.none()
     endpoint = "tags"
     search_fields = ("tag",)
     ordering_fields = ("id", "tag")
     ordering = ("id",)
+    permission_map = {"log": "submission.orga_list_tag"}
 
     def get_queryset(self):
         return self.event.tags.all().order_by("pk")
@@ -469,13 +449,14 @@ class TagViewSet(PretalxViewSetMixin, viewsets.ModelViewSet):
     partial_update=extend_schema(summary="Update Submission Types (Partial Update)"),
     destroy=extend_schema(summary="Delete Submission Types"),
 )
-class SubmissionTypeViewSet(PretalxViewSetMixin, viewsets.ModelViewSet):
+class SubmissionTypeViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelViewSet):
     serializer_class = SubmissionTypeSerializer
     queryset = SubmissionType.objects.none()
     endpoint = "submission-types"
     search_fields = ("name",)
     ordering_fields = ("id", "name", "default_duration")
     ordering = ("id",)
+    permission_map = {"log": "submission.orga_list_submissionType"}
 
     def get_queryset(self):
         return self.event.submission_types.all()
@@ -489,13 +470,14 @@ class SubmissionTypeViewSet(PretalxViewSetMixin, viewsets.ModelViewSet):
     partial_update=extend_schema(summary="Update Tracks (Partial Update)"),
     destroy=extend_schema(summary="Delete Tracks"),
 )
-class TrackViewSet(PretalxViewSetMixin, viewsets.ModelViewSet):
+class TrackViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelViewSet):
     serializer_class = TrackSerializer
     queryset = Track.objects.none()
     endpoint = "tracks"
     search_fields = ("name",)
     ordering_fields = ("id", "name")
     ordering = ("id",)
+    permission_map = {"log": "submission.orga_list_track"}
 
     def get_queryset(self):
         return self.event.tracks.all()
