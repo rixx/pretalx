@@ -19,6 +19,7 @@ updating it in the coming months.
    :caption: Contents:
 
    sessions
+   review
    event/widget
    markdown
    faq
