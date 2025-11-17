@@ -14,6 +14,7 @@ Legal & Policies
    licensing
    browser-support
    release-cycle
+   gdpr
 ..   privacy
 ..   accessibility
 ..   lifecycle
