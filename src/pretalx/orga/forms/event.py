@@ -999,3 +999,100 @@ class EventHistoryFilterForm(forms.Form):
 
     class Media:
         css = {"all": ["orga/css/forms/search.css"]}
+
+
+SOCIAL_PREVIEW_LAYOUT_CHOICES = (
+    ("default", _("Default - Clean layout with branding and content")),
+    ("minimal", _("Minimal - Simple centered design")),
+    ("full", _("Full - Rich layout with all elements")),
+)
+
+
+class SocialPreviewSettingsForm(
+    ReadOnlyFlag, PretalxI18nFormMixin, JsonSubfieldMixin, forms.Form
+):
+    submission_enabled = forms.BooleanField(
+        label=_("Enable social preview images for submissions"),
+        required=False,
+        help_text=_(
+            "Generate custom social media preview images for talk/session pages."
+        ),
+    )
+    submission_layout = forms.ChoiceField(
+        label=_("Submission layout"),
+        required=False,
+        choices=SOCIAL_PREVIEW_LAYOUT_CHOICES,
+        widget=EnhancedSelect,
+        help_text=_("Choose the layout style for submission preview images."),
+    )
+    submission_show_event_logo = forms.BooleanField(
+        label=_("Show event logo"),
+        required=False,
+        help_text=_("Include the event logo in submission preview images."),
+    )
+    submission_show_event_name = forms.BooleanField(
+        label=_("Show event name"),
+        required=False,
+        help_text=_("Include the event name in submission preview images."),
+    )
+    submission_show_speaker_avatars = forms.BooleanField(
+        label=_("Show speaker information"),
+        required=False,
+        help_text=_("Include speaker names and avatars in submission preview images."),
+    )
+    submission_show_submission_image = forms.BooleanField(
+        label=_("Show submission image"),
+        required=False,
+        help_text=_(
+            "Include the submission's custom image if available (may be overridden by layout)."
+        ),
+    )
+
+    speaker_enabled = forms.BooleanField(
+        label=_("Enable social preview images for speakers"),
+        required=False,
+        help_text=_("Generate custom social media preview images for speaker pages."),
+    )
+    speaker_layout = forms.ChoiceField(
+        label=_("Speaker layout"),
+        required=False,
+        choices=SOCIAL_PREVIEW_LAYOUT_CHOICES,
+        widget=EnhancedSelect,
+        help_text=_("Choose the layout style for speaker preview images."),
+    )
+    speaker_show_event_logo = forms.BooleanField(
+        label=_("Show event logo"),
+        required=False,
+        help_text=_("Include the event logo in speaker preview images."),
+    )
+    speaker_show_event_name = forms.BooleanField(
+        label=_("Show event name"),
+        required=False,
+        help_text=_("Include the event name in speaker preview images."),
+    )
+    speaker_show_avatar = forms.BooleanField(
+        label=_("Show speaker avatar"),
+        required=False,
+        help_text=_("Include the speaker's profile picture in preview images."),
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.event = kwargs.pop("event", None)
+        super().__init__(*args, **kwargs)
+
+    class Meta:
+        model = Event
+        fields = []
+        json_fields = {
+            "submission_enabled": "social_preview_settings.submission.enabled",
+            "submission_layout": "social_preview_settings.submission.layout",
+            "submission_show_event_logo": "social_preview_settings.submission.show_event_logo",
+            "submission_show_event_name": "social_preview_settings.submission.show_event_name",
+            "submission_show_speaker_avatars": "social_preview_settings.submission.show_speaker_avatars",
+            "submission_show_submission_image": "social_preview_settings.submission.show_submission_image",
+            "speaker_enabled": "social_preview_settings.speaker.enabled",
+            "speaker_layout": "social_preview_settings.speaker.layout",
+            "speaker_show_event_logo": "social_preview_settings.speaker.show_event_logo",
+            "speaker_show_event_name": "social_preview_settings.speaker.show_event_name",
+            "speaker_show_avatar": "social_preview_settings.speaker.show_avatar",
+        }

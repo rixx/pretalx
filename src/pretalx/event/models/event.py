@@ -136,6 +136,26 @@ def default_mail_settings():
     }
 
 
+def default_social_preview_settings():
+    return {
+        "submission": {
+            "enabled": True,
+            "layout": "default",
+            "show_event_logo": True,
+            "show_event_name": True,
+            "show_speaker_avatars": True,
+            "show_submission_image": False,
+        },
+        "speaker": {
+            "enabled": True,
+            "layout": "default",
+            "show_event_logo": True,
+            "show_event_name": True,
+            "show_avatar": True,
+        },
+    }
+
+
 @hierarkey.add()
 class Event(PretalxModel):
     """The Event class has direct or indirect relations to all other models.
@@ -213,6 +233,7 @@ class Event(PretalxModel):
     display_settings = models.JSONField(default=default_display_settings)
     review_settings = models.JSONField(default=default_review_settings)
     mail_settings = models.JSONField(default=default_mail_settings)
+    social_preview_settings = models.JSONField(default=default_social_preview_settings)
     primary_color = models.CharField(
         max_length=7,
         null=True,
@@ -358,6 +379,7 @@ class Event(PretalxModel):
         review_settings = "{settings}review/"
         mail_settings = edit_mail_settings = "{settings}mail"
         widget_settings = "{settings}widget"
+        social_preview_settings = "{settings}social-preview"
         team_settings = "{settings}team/"
         new_team = "{settings}team/new"
         room_settings = "{schedule}rooms/"

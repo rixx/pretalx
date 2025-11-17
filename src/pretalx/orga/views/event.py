@@ -63,6 +63,7 @@ from pretalx.orga.forms.event import (
     ReviewPhaseForm,
     ReviewScoreCategoryForm,
     ReviewSettingsForm,
+    SocialPreviewSettingsForm,
     WidgetGenerationForm,
     WidgetSettingsForm,
 )
@@ -815,3 +816,32 @@ class WidgetSettings(EventSettingsPermission, FormView):
 
     def get_success_url(self) -> str:
         return self.request.event.orga_urls.widget_settings
+
+
+class SocialPreviewSettings(EventSettingsPermission, FormView):
+    form_class = SocialPreviewSettingsForm
+    template_name = "orga/settings/social_preview.html"
+
+    def get_success_url(self) -> str:
+        return self.request.event.orga_urls.social_preview_settings
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["obj"] = self.request.event
+        kwargs["event"] = self.request.event
+        kwargs["locales"] = self.request.event.locales
+        return kwargs
+
+    def form_valid(self, form):
+        form.save()
+
+        from pretalx.common.social_preview import invalidate_preview_cache
+
+        for submission in self.request.event.submissions.all():
+            invalidate_preview_cache(self.request.event, "submission", submission.code)
+
+        for speaker in self.request.event.submitters.all():
+            invalidate_preview_cache(self.request.event, "speaker", speaker.code)
+
+        messages.success(self.request, phrases.base.saved)
+        return super().form_valid(form)

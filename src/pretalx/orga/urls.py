@@ -487,6 +487,11 @@ urlpatterns = [
                     name="settings.widget",
                 ),
                 path(
+                    "settings/social-preview",
+                    event.SocialPreviewSettings.as_view(),
+                    name="settings.social_preview",
+                ),
+                path(
                     "settings/review/",
                     event.EventReviewSettings.as_view(),
                     name="settings.review",

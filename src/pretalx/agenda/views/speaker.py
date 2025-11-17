@@ -182,6 +182,12 @@ class SpeakerTalksIcalView(PermissionRequired, DetailView):
 
 class SpeakerSocialMediaCard(SocialMediaCardMixin, SpeakerView):
     def get_image(self):
+        from pretalx.common.social_preview import generate_and_cache_speaker_preview
+
+        preview = generate_and_cache_speaker_preview(self.request.event, self.speaker)
+        if preview:
+            return preview
+
         return self.profile.avatar
 
 

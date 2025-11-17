@@ -1,0 +1,82 @@
+<!--
+SPDX-FileCopyrightText: 2024-present Tobias Kunze
+SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
+-->
+
+{% extends "orga/settings/base.html" %}
+
+{% load i18n %}
+{% load static %}
+
+{% block extra_title %}{% translate "Social Media Preview Images" %} :: {% endblock extra_title %}
+
+{% block settings_content %}
+    <h2>
+        {% translate "Social Media Preview Images" %}
+    </h2>
+    <div class="alert alert-info">
+        {% blocktranslate trimmed %}
+            Configure how your event generates social media preview images (Open Graph and Twitter Cards)
+            for submissions and speakers. These images will be generated on demand and cached until
+            the related data changes.
+        {% endblocktranslate %}
+    </div>
+
+    <form method="post" class="form-horizontal">
+        {% csrf_token %}
+
+        <h3>{% translate "Submission Preview Images" %}</h3>
+        <p class="text-muted">{% translate "Settings for talk and session preview images." %}</p>
+
+        {% for field in form %}
+            {% if "submission" in field.name %}
+                <div class="form-group{% if field.errors %} has-error{% endif %}">
+                    <label class="col-md-3 control-label" for="{{ field.id_for_label }}">
+                        {{ field.label }}
+                        {% if field.field.required %}<span class="required">*</span>{% endif %}
+                    </label>
+                    <div class="col-md-9">
+                        {{ field }}
+                        {% if field.help_text %}
+                            <p class="help-block">{{ field.help_text }}</p>
+                        {% endif %}
+                        {% if field.errors %}
+                            <span class="help-block">{{ field.errors }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+
+        <h3>{% translate "Speaker Preview Images" %}</h3>
+        <p class="text-muted">{% translate "Settings for speaker profile preview images." %}</p>
+
+        {% for field in form %}
+            {% if "speaker" in field.name %}
+                <div class="form-group{% if field.errors %} has-error{% endif %}">
+                    <label class="col-md-3 control-label" for="{{ field.id_for_label }}">
+                        {{ field.label }}
+                        {% if field.field.required %}<span class="required">*</span>{% endif %}
+                    </label>
+                    <div class="col-md-9">
+                        {{ field }}
+                        {% if field.help_text %}
+                            <p class="help-block">{{ field.help_text }}</p>
+                        {% endif %}
+                        {% if field.errors %}
+                            <span class="help-block">{{ field.errors }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+
+        <div class="form-group submit-group">
+            <div class="col-md-offset-3 col-md-9">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="fa fa-check"></i> {% translate "Save" %}
+                </button>
+            </div>
+        </div>
+    </form>
+{% endblock settings_content %}

@@ -274,3 +274,80 @@ make your locale available to the makemessages command. Otherwise, check that yo
 plugin is enabled in the current event context if your locale should be scoped to
 events with your plugin activated.
 """
+
+
+# Signal handlers for social preview cache invalidation
+from django.db.models.signals import m2m_changed, post_save
+
+
+def invalidate_submission_preview_cache(sender, instance, **kwargs):
+    """Invalidate cached preview images when submission data changes."""
+    from pretalx.common.social_preview import invalidate_preview_cache
+
+    if hasattr(instance, "event") and hasattr(instance, "code"):
+        invalidate_preview_cache(instance.event, "submission", instance.code)
+
+
+def invalidate_speaker_preview_cache(sender, instance, **kwargs):
+    """Invalidate cached preview images when speaker profile data changes."""
+    from pretalx.common.social_preview import invalidate_preview_cache
+
+    if hasattr(instance, "event") and hasattr(instance, "user"):
+        invalidate_preview_cache(instance.event, "speaker", instance.user.code)
+
+
+def invalidate_event_preview_caches(sender, instance, **kwargs):
+    """Invalidate all cached preview images when event settings change."""
+    from pretalx.common.social_preview import invalidate_preview_cache
+
+    if hasattr(instance, "slug"):
+        for submission in instance.submissions.all():
+            invalidate_preview_cache(instance, "submission", submission.code)
+
+        for speaker in instance.submitters.all():
+            invalidate_preview_cache(instance, "speaker", speaker.code)
+
+
+def invalidate_submission_speakers_preview_cache(sender, instance, action, **kwargs):
+    """Invalidate submission preview when speakers are added/removed."""
+    from pretalx.common.social_preview import invalidate_preview_cache
+
+    if action in ["post_add", "post_remove", "post_clear"]:
+        if hasattr(instance, "event") and hasattr(instance, "code"):
+            invalidate_preview_cache(instance.event, "submission", instance.code)
+
+
+def register_social_preview_signals():
+    """Register signal handlers for social preview cache invalidation."""
+    try:
+        from pretalx.submission.models import Submission
+        from pretalx.person.models import SpeakerProfile
+
+        post_save.connect(
+            invalidate_submission_preview_cache,
+            sender=Submission,
+            dispatch_uid="invalidate_submission_preview_on_save",
+        )
+
+        m2m_changed.connect(
+            invalidate_submission_speakers_preview_cache,
+            sender=Submission.speakers.through,
+            dispatch_uid="invalidate_submission_preview_on_speaker_change",
+        )
+
+        post_save.connect(
+            invalidate_speaker_preview_cache,
+            sender=SpeakerProfile,
+            dispatch_uid="invalidate_speaker_preview_on_save",
+        )
+
+        post_save.connect(
+            invalidate_event_preview_caches,
+            sender=Event,
+            dispatch_uid="invalidate_event_previews_on_save",
+        )
+    except Exception:
+        pass
+
+
+register_social_preview_signals()
