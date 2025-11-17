@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
 
 import pytest
+from django.test import override_settings
 
 
 @pytest.mark.django_db
@@ -146,3 +147,28 @@ def test_cannot_reset_password_without_account(speaker, client, event):
         follow=True,
     )
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+@override_settings(HAS_REDIS=False)
+def test_login_without_redis_works(speaker, client, event):
+    """Test that login still works when Redis is not available."""
+    # Should be able to login even after many failed attempts
+    for i in range(15):
+        response = client.post(
+            event.urls.login,
+            data={"login_email": speaker.email, "login_password": "wrongpassword"},
+            follow=True,
+            REMOTE_ADDR="8.8.8.8",
+        )
+        assert response.status_code == 200
+
+    # Should still be able to login with correct password (no rate limiting)
+    response = client.post(
+        event.urls.login,
+        data={"login_email": speaker.email, "login_password": "speakerpwd1!"},
+        follow=True,
+        REMOTE_ADDR="8.8.8.8",
+    )
+    assert response.status_code == 200
+    assert speaker.get_display_name() in response.text

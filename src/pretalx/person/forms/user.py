@@ -1,15 +1,21 @@
 # SPDX-FileCopyrightText: 2025-present Tobias Kunze
 # SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
 
+import hashlib
+import ipaddress
+
 from django import forms
+from django.conf import settings
 from django.contrib.auth import authenticate
 from django.core.exceptions import ValidationError
 from django.utils import timezone, translation
+from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from pretalx.cfp.forms.cfp import CfPFormMixin
 from pretalx.common.forms.fields import NewPasswordConfirmationField, NewPasswordField
 from pretalx.common.forms.renderers import InlineFormLabelRenderer
+from pretalx.common.http import get_client_ip
 from pretalx.common.text.phrases import phrases
 from pretalx.person.models import User
 
@@ -52,12 +58,48 @@ class UserForm(CfPFormMixin, forms.Form):
     FIELDS_ERROR = _(
         "Please fill all fields of either the login or the registration form."
     )
+    RATE_LIMIT_ERROR = _(
+        "For security reasons, please wait 5 minutes before you try again."
+    )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, request=None, **kwargs):
         kwargs.pop("event", None)
+        self.request = request
         super().__init__(*args, **kwargs)
 
+    @cached_property
+    def ratelimit_key(self):
+        """Generate a rate limiting key based on the client IP address.
+
+        Returns None if Redis is not available, if the client IP cannot be
+        determined, or if the IP is private (indicating a misconfigured reverse proxy).
+        """
+        if not settings.HAS_REDIS:
+            return None
+        if not self.request:
+            return None
+        client_ip = get_client_ip(self.request)
+        if not client_ip:
+            return None
+        try:
+            client_ip = ipaddress.ip_address(client_ip)
+        except ValueError:
+            # Web server not set up correctly
+            return None
+        if client_ip.is_private:
+            # This is the private IP of the server, web server not set up correctly
+            return None
+        return f"pretalx_login_{hashlib.sha1(str(client_ip).encode()).hexdigest()}"
+
     def _clean_login(self, data):
+        # Check rate limit before attempting authentication
+        if self.ratelimit_key:
+            from django.core.cache import cache
+
+            cnt = cache.get(self.ratelimit_key)
+            if cnt and int(cnt) > 10:
+                raise ValidationError(self.RATE_LIMIT_ERROR)
+
         try:
             uname = User.objects.get(email__iexact=data.get("login_email")).email
         except User.DoesNotExist:  # We do this to avoid timing attacks
@@ -66,6 +108,13 @@ class UserForm(CfPFormMixin, forms.Form):
         user = authenticate(username=uname, password=data.get("login_password"))
 
         if user is None:
+            # Increment rate limit counter on failed authentication
+            if self.ratelimit_key:
+                from django.core.cache import cache
+
+                cache_value = cache.get(self.ratelimit_key, 0)
+                cache.set(self.ratelimit_key, int(cache_value) + 1, 300)
+
             raise ValidationError(
                 _(
                     "No user account matches the entered credentials. "
