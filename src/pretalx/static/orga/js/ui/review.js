@@ -40,10 +40,24 @@ if (slider) {
 let count = { accept: 0, reject: 0 }
 const acceptLabel = document.querySelector("#acceptCount")
 const rejectLabel = document.querySelector("#rejectCount")
+const toBeAcceptedDurationLabel = document.querySelector(
+    "#toBeAcceptedDuration"
+)
+const alreadyAcceptedDurationLabel = document.querySelector(
+    "#alreadyAcceptedDuration"
+)
+const totalDurationLabel = document.querySelector("#totalDuration")
+
+const formatHours = (minutes) => {
+    const hours = minutes / 60
+    return `${hours.toFixed(1)}h`
+}
 
 let updateCount = () => {
     count.accept = 0
     count.reject = 0
+    let toBeAcceptedDuration = 0
+
     document
         .querySelectorAll(".review-table tbody .reject input[type=radio]")
         .forEach((element) => {
@@ -59,20 +73,58 @@ let updateCount = () => {
         .forEach((element) => {
             if (element.checked) {
                 count.accept += 1
+                const duration = parseInt(element.dataset.duration) || 0
+                toBeAcceptedDuration += duration
                 element.parentElement.parentElement
                     .querySelector(".unmark-radio")
                     .classList.add("active")
             }
         })
+
     if (!(count.accept || count.reject)) {
         document.querySelector("#submitBar").classList.add("d-none")
     } else {
         document.querySelector("#submitBar").classList.remove("d-none")
     }
+
     if (acceptLabel.firstChild) acceptLabel.removeChild(acceptLabel.firstChild)
     acceptLabel.appendChild(document.createTextNode(count.accept))
     if (rejectLabel.firstChild) rejectLabel.removeChild(rejectLabel.firstChild)
     rejectLabel.appendChild(document.createTextNode(count.reject))
+
+    // Update duration displays
+    const submitBar = document.querySelector("#submitBar")
+    const alreadyAcceptedDuration =
+        parseInt(submitBar.dataset.acceptedDuration) || 0
+    const totalDuration = toBeAcceptedDuration + alreadyAcceptedDuration
+
+    if (toBeAcceptedDurationLabel) {
+        if (toBeAcceptedDurationLabel.firstChild)
+            toBeAcceptedDurationLabel.removeChild(
+                toBeAcceptedDurationLabel.firstChild
+            )
+        toBeAcceptedDurationLabel.appendChild(
+            document.createTextNode(formatHours(toBeAcceptedDuration))
+        )
+    }
+
+    if (alreadyAcceptedDurationLabel) {
+        if (alreadyAcceptedDurationLabel.firstChild)
+            alreadyAcceptedDurationLabel.removeChild(
+                alreadyAcceptedDurationLabel.firstChild
+            )
+        alreadyAcceptedDurationLabel.appendChild(
+            document.createTextNode(formatHours(alreadyAcceptedDuration))
+        )
+    }
+
+    if (totalDurationLabel) {
+        if (totalDurationLabel.firstChild)
+            totalDurationLabel.removeChild(totalDurationLabel.firstChild)
+        totalDurationLabel.appendChild(
+            document.createTextNode(formatHours(totalDuration))
+        )
+    }
 }
 document
     .querySelectorAll(".review-table tbody .radio input[type=radio]")

@@ -8,7 +8,7 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
 {% if record.state == "submitted" and table.can_accept_submissions %}
   <div class="action-row d-flex justify-space-around">
     <div class="radio form-check accept">
-      <input type="radio" id="a-{{ record.code }}" name="s-{{ record.code }}" value="accept">
+      <input type="radio" id="a-{{ record.code }}" name="s-{{ record.code }}" value="accept" data-duration="{{ record.get_duration }}">
       <label for="a-{{ record.code }}" title="{% translate "Accept" %}"></label>
     </div>
     <div class="radio form-check reject">

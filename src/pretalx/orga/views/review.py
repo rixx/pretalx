@@ -282,6 +282,16 @@ class ReviewDashboard(
         # Do NOT use len() here! It yields a different result.
         result["missing_reviews"] = missing_reviews.count()
         result["next_submission"] = missing_reviews[0] if missing_reviews else None
+
+        # Calculate total duration of accepted/confirmed submissions (in minutes)
+        accepted_submissions = self.request.event.submissions.filter(
+            state__in=[SubmissionStates.ACCEPTED, SubmissionStates.CONFIRMED]
+        )
+        total_accepted_duration = 0
+        for submission in accepted_submissions:
+            total_accepted_duration += submission.get_duration()
+        result["accepted_duration_minutes"] = total_accepted_duration
+
         return result
 
     def get_pending(self, request):

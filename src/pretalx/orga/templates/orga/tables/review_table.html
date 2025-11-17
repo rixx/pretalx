@@ -32,7 +32,7 @@ form from the review form.
         {% endblock pagination %}
 
         {% block submit-bar %}
-            <div id="submitBar">
+            <div id="submitBar" data-accepted-duration="{{ accepted_duration_minutes|default:0 }}">
                 <div id="pending" class="form-check mr-2">
                     <input type="checkbox" id="id_pending" name="pending">
                     <label for="id_pending">{% translate 'Mark the new state as "pending"' %}</label>
@@ -41,6 +41,13 @@ form from the review form.
                 <span id="submitText" class="d-none ml-2">
                     {% translate "Accept" %}: <span id="acceptCount" class="text-success"></span>
                     {% translate "Reject" %}: <span id="rejectCount" class="text-danger"></span>
+                    <br>
+                    <span id="durationText" class="text-muted small">
+                        {% translate "Running time" %}:
+                        {% translate "to-be-accepted" %}: <span id="toBeAcceptedDuration">0h</span>,
+                        {% translate "already accepted" %}: <span id="alreadyAcceptedDuration">0h</span>
+                        ({% translate "sum" %}: <span id="totalDuration">0h</span>)
+                    </span>
                 </span>
                 <button type="submit" class="btn btn-success">{% translate "Go!" %}</button>
             </div>
