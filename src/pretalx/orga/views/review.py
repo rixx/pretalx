@@ -108,6 +108,8 @@ class ReviewDashboard(
                 review_nonnull_count=Count(
                     "reviews", distinct=True, filter=Q(reviews__score__isnull=False)
                 ),
+                speaker_count=Count("speakers", distinct=True),
+                invitation_count=Count("invitations", distinct=True),
                 state_rank=Case(
                     When(state=SubmissionStates.SUBMITTED, then=1),
                     When(state=SubmissionStates.ACCEPTED, then=2),

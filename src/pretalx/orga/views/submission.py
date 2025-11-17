@@ -633,6 +633,10 @@ class SubmissionListMixin(ReviewerSubmissionFilter, OrgaTableMixin):
             .order_by("id")
             .distinct()
             .select_related("event", "event__cfp")
+            .annotate(
+                speaker_count=Count("speakers", distinct=True),
+                invitation_count=Count("invitations", distinct=True),
+            )
         )
 
     @context

@@ -49,6 +49,16 @@ class SubmissionTable(QuestionColumnMixin, PretalxTable):
         template_name="orga/tables/columns/submission_speakers.html",
         orderable=False,
     )
+    speaker_count = tables.Column(
+        verbose_name=_("# Speakers"),
+        accessor="speaker_count",
+        attrs={"td": {"class": "text-center numeric"}},
+    )
+    invitation_count = tables.Column(
+        verbose_name=_("# Invitations"),
+        accessor="invitation_count",
+        attrs={"td": {"class": "text-center numeric"}},
+    )
     submission_type = SortableColumn(
         linkify=lambda record: record.submission_type.urls.base,
         order_by=Lower(Translate("submission_type__name")),
@@ -94,7 +104,7 @@ class SubmissionTable(QuestionColumnMixin, PretalxTable):
         self.can_view_speakers = can_view_speakers
 
         if not can_view_speakers:
-            self.exclude += ["speakers"]
+            self.exclude += ["speakers", "speaker_count", "invitation_count"]
         if not kwargs.get("has_update_permission"):
             self.exclude += ["is_featured", "actions"]
 
@@ -174,6 +184,16 @@ class ReviewTable(QuestionColumnMixin, PretalxTable):
         verbose_name=_("Speakers"),
         orderable=False,
         attrs={"td": {"class": "w-25 nowrap"}},
+    )
+    speaker_count = tables.Column(
+        verbose_name=_("# Speakers"),
+        accessor="speaker_count",
+        attrs={"td": {"class": "text-center numeric"}},
+    )
+    invitation_count = tables.Column(
+        verbose_name=_("# Invitations"),
+        accessor="invitation_count",
+        attrs={"td": {"class": "text-center numeric"}},
     )
     code = tables.Column(
         verbose_name=_("ID"),
@@ -307,7 +327,7 @@ class ReviewTable(QuestionColumnMixin, PretalxTable):
             self.exclude.append("user_score")
 
         if not self.can_view_speakers:
-            self.exclude.append("speakers")
+            self.exclude.extend(["speakers", "speaker_count", "invitation_count"])
 
     def get_independent_score(self, submission, category_id):
         if not self.independent_categories:
