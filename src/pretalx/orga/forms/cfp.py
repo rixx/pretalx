@@ -119,6 +119,16 @@ class CfPSettingsForm(
                 initial=obj.cfp.fields[attribute].get("max_length"),
             )
             self.fields[field_name].widget.attrs["placeholder"] = ""
+
+        # Add max_speakers field for additional_speaker
+        self.fields["cfp_additional_speaker_max"] = forms.IntegerField(
+            required=False,
+            min_value=1,
+            initial=obj.cfp.fields.get("additional_speaker", default_fields()["additional_speaker"]).get("max_speakers"),
+            help_text=_("Maximum number of speakers per proposal (including pending invitations). Leave empty for no limit."),
+        )
+        self.fields["cfp_additional_speaker_max"].widget.attrs["placeholder"] = ""
+
         for attribute in self.request_require_fields:
             field_name = f"cfp_ask_{attribute}"
             self.fields[field_name] = forms.ChoiceField(
@@ -149,6 +159,12 @@ class CfPSettingsForm(
             self.instance.cfp.fields[key]["max_length"] = self.cleaned_data.get(
                 f"cfp_{key}_max_length"
             )
+        # Save max_speakers for additional_speaker
+        if "additional_speaker" not in self.instance.cfp.fields:
+            self.instance.cfp.fields["additional_speaker"] = default_fields()["additional_speaker"]
+        self.instance.cfp.fields["additional_speaker"]["max_speakers"] = self.cleaned_data.get(
+            "cfp_additional_speaker_max"
+        )
         self.instance.cfp.save()
         super().save(*args, **kwargs)
 

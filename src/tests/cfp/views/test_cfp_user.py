@@ -724,6 +724,37 @@ def test_cannot_invite_duplicate(speaker_client, submission):
 
 
 @pytest.mark.django_db
+def test_cannot_exceed_max_speakers_with_invitation(speaker_client, submission):
+    from pretalx.submission.models import SubmissionInvitation
+
+    # Set max_speakers to 2
+    with scope(event=submission.event):
+        submission.event.cfp.fields["additional_speaker"]["max_speakers"] = 2
+        submission.event.cfp.save()
+
+    # Submission already has 1 speaker, can invite 1 more
+    data = {
+        "speaker": "first@speaker.org",
+        "subject": "Please join!",
+        "text": "C'mon, it will be fun!",
+    }
+    response = speaker_client.post(submission.urls.invite, follow=True, data=data)
+    assert response.status_code == 200
+    assert SubmissionInvitation.objects.filter(
+        submission=submission, email="first@speaker.org"
+    ).exists()
+
+    # Now at limit (1 speaker + 1 invitation), cannot invite another
+    data["speaker"] = "second@speaker.org"
+    response = speaker_client.post(submission.urls.invite, follow=True, data=data)
+    assert response.status_code == 200
+    assert "maximum number of speakers" in response.content.decode()
+    assert not SubmissionInvitation.objects.filter(
+        submission=submission, email="second@speaker.org"
+    ).exists()
+
+
+@pytest.mark.django_db
 def test_can_accept_invitation(orga_client, submission, orga_user):
     from pretalx.submission.models import SubmissionInvitation
 

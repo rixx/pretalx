@@ -54,7 +54,7 @@ def default_fields():
         "track": {"visibility": "do_not_ask"},
         "duration": {"visibility": "do_not_ask"},
         "content_locale": {"visibility": "required"},
-        "additional_speaker": {"visibility": "optional"},
+        "additional_speaker": {"visibility": "optional", "max_speakers": None},
     }
 
 

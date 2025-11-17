@@ -1320,6 +1320,38 @@ def test_orga_cannot_add_speaker_to_submission_readonly_token(
 
 
 @pytest.mark.django_db
+def test_cannot_add_speaker_when_max_speakers_reached(
+    client, orga_user_write_token, submission
+):
+    from pretalx.person.models import User
+    from pretalx.submission.models import SubmissionInvitation
+
+    # Set max_speakers to 2
+    with scope(event=submission.event):
+        submission.event.cfp.fields["additional_speaker"]["max_speakers"] = 2
+        submission.event.cfp.save()
+
+        # Add one invitation to reach the limit
+        SubmissionInvitation.objects.create(
+            submission=submission, email="pending@speaker.org"
+        )
+
+    # Try to add a speaker (1 speaker + 1 invitation = at limit)
+    response = client.post(
+        submission.event.api_urls.submissions + f"{submission.code}/add-speaker/",
+        follow=True,
+        data=json.dumps({"email": "new@speaker.org"}),
+        content_type="application/json",
+        headers={
+            "Authorization": f"Token {orga_user_write_token.token}",
+        },
+    )
+    content = json.loads(response.text)
+    assert response.status_code == 400, content
+    assert "maximum number of speakers" in content["detail"]
+
+
+@pytest.mark.django_db
 def test_orga_can_remove_speaker_from_submission(
     client, orga_user_write_token, submission, speaker
 ):
@@ -1714,6 +1746,41 @@ def test_cannot_create_duplicate_invitation(client, orga_user_write_token, submi
 
     assert response.status_code == 400, content
     assert "already been invited" in content["detail"]
+
+
+@pytest.mark.django_db
+def test_cannot_exceed_max_speakers_via_api(client, orga_user_write_token, submission):
+    from pretalx.submission.models import SubmissionInvitation
+
+    # Set max_speakers to 2
+    with scope(event=submission.event):
+        submission.event.cfp.fields["additional_speaker"]["max_speakers"] = 2
+        submission.event.cfp.save()
+
+    url = (
+        submission.event.api_urls.submissions
+        + f"{submission.code}/create-invitation/"
+    )
+
+    # First invitation should succeed (1 speaker + 1 invitation = 2)
+    response = client.post(
+        url,
+        data=json.dumps({"email": "first@speaker.org"}),
+        content_type="application/json",
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
+    )
+    assert response.status_code == 200
+
+    # Second invitation should fail (1 speaker + 2 invitations would exceed limit)
+    response = client.post(
+        url,
+        data=json.dumps({"email": "second@speaker.org"}),
+        content_type="application/json",
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
+    )
+    content = json.loads(response.text)
+    assert response.status_code == 400, content
+    assert "maximum number of speakers" in content["detail"]
 
 
 @pytest.mark.django_db

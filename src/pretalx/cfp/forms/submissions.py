@@ -47,6 +47,19 @@ class SubmissionInvitationForm(forms.Form):
         ).exists():
             raise ValidationError(_("This person has already been invited."))
 
+        # Check if max_speakers limit has been reached
+        max_speakers = self.submission.event.cfp.fields.get("additional_speaker", {}).get("max_speakers")
+        if max_speakers is not None:
+            current_count = self.submission.speakers.count()
+            pending_count = self.submission.invitations.count()
+            total_count = current_count + pending_count
+            if total_count >= max_speakers:
+                raise ValidationError(
+                    _("This proposal has reached the maximum number of speakers ({max_speakers}).").format(
+                        max_speakers=max_speakers
+                    )
+                )
+
         return email
 
     def save(self):

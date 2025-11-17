@@ -369,15 +369,18 @@ class SubmissionViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelVie
 
     @action(detail=True, methods=["POST"], url_path="add-speaker")
     def add_speaker(self, request, **kwargs):
-        serializer = AddSpeakerSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-        submission = self.get_object()
-        submission.add_speaker(
-            email=data["email"], name=data.get("name"), locale=data.get("locale")
-        )
-        submission.refresh_from_db()
-        return Response(SubmissionOrgaSerializer(submission).data)
+        try:
+            serializer = AddSpeakerSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            data = serializer.validated_data
+            submission = self.get_object()
+            submission.add_speaker(
+                email=data["email"], name=data.get("name"), locale=data.get("locale")
+            )
+            submission.refresh_from_db()
+            return Response(SubmissionOrgaSerializer(submission).data)
+        except SubmissionError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=["POST"], url_path="remove-speaker")
     def remove_speaker(self, request, **kwargs):
@@ -419,6 +422,18 @@ class SubmissionViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelVie
                 {"detail": "This person has already been invited."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # Check if max_speakers limit has been reached
+        max_speakers = submission.event.cfp.fields.get("additional_speaker", {}).get("max_speakers")
+        if max_speakers is not None:
+            current_count = submission.speakers.count()
+            pending_count = submission.invitations.count()
+            total_count = current_count + pending_count
+            if total_count >= max_speakers:
+                return Response(
+                    {"detail": f"This proposal has reached the maximum number of speakers ({max_speakers})."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         invitation = SubmissionInvitation.objects.create(
             submission=submission, email=email

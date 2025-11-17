@@ -1129,6 +1129,18 @@ class Submission(GenerateCode, PretalxModel):
         from pretalx.person.models import SpeakerProfile, User
         from pretalx.person.services import create_user
 
+        # Check if max_speakers limit has been reached
+        max_speakers = self.event.cfp.fields.get("additional_speaker", {}).get("max_speakers")
+        if max_speakers is not None:
+            current_count = self.speakers.count()
+            pending_count = self.invitations.count()
+            total_count = current_count + pending_count
+            if total_count >= max_speakers:
+                from pretalx.common.exceptions import SubmissionError
+                raise SubmissionError(
+                    f"This proposal has reached the maximum number of speakers ({max_speakers})."
+                )
+
         user_created = False
         context = {}
         try:
