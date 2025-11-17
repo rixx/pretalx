@@ -1,0 +1,47 @@
+<!--
+SPDX-FileCopyrightText: 2018-present Tobias Kunze
+SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
+-->
+
+{% extends "orga/event/wizard/base.html" %}
+
+{% load i18n %}
+
+{% block wizard_content %}
+    <div class="alert alert-info col-md-9 offset-md-3">
+        {% translate "Select plugins to enable for your event. Plugins add extra features and integrations. You can always change these later in your event settings." %}
+    </div>
+{% endblock wizard_content %}
+
+{% block wizard_form %}
+    {% if wizard.form.grouped_plugins %}
+        <div class="form-plugins-wizard">
+            {% for category, plugins in wizard.form.grouped_plugins.items %}
+                <fieldset class="plugin-category">
+                    <legend>{{ category.1 }}</legend>
+                    {% for plugin in plugins %}
+                        {% with field_name="plugin_"|add:plugin.module %}
+                            {% for field in wizard.form %}
+                                {% if field.name == field_name %}
+                                    <div class="form-check plugin-item">
+                                        {{ field }}
+                                        <label for="{{ field.id_for_label }}" class="form-check-label">
+                                            <strong>{{ plugin.name }}</strong>
+                                            {% if plugin.description %}
+                                                <br><small class="text-muted">{{ plugin.description }}</small>
+                                            {% endif %}
+                                        </label>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        {% endwith %}
+                    {% endfor %}
+                </fieldset>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            {% translate "No plugins are currently available for installation." %}
+        </div>
+    {% endif %}
+{% endblock wizard_form %}

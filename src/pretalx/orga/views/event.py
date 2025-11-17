@@ -51,6 +51,7 @@ from pretalx.event.forms import (
     EventWizardCopyForm,
     EventWizardDisplayForm,
     EventWizardInitialForm,
+    EventWizardPluginsForm,
     EventWizardTimelineForm,
 )
 from pretalx.event.models import Event, Team, TeamInvite
@@ -615,6 +616,7 @@ class EventWizard(PermissionRequired, SensibleBackWizardMixin, SessionWizardView
         ("timeline", EventWizardTimelineForm),
         ("display", EventWizardDisplayForm),
         ("copy", EventWizardCopyForm),
+        ("plugins", EventWizardPluginsForm),
     ]
     condition_dict = {"copy": condition_copy}
 
@@ -688,7 +690,7 @@ class EventWizard(PermissionRequired, SensibleBackWizardMixin, SessionWizardView
     @transaction.atomic()
     def done(self, form_list, *args, **kwargs):
         steps = {}
-        for step in ("initial", "basics", "timeline", "display", "copy"):
+        for step in ("initial", "basics", "timeline", "display", "copy", "plugins"):
             try:
                 steps[step] = self.get_cleaned_data_for_step(step)
             except KeyError:
@@ -757,8 +759,15 @@ class EventWizard(PermissionRequired, SensibleBackWizardMixin, SessionWizardView
                         "timezone",
                         "email",
                         "deadline",
+                        "plugins",
                     ],
                 )
+
+            if steps["plugins"]:
+                for field_name, value in steps["plugins"].items():
+                    if field_name.startswith("plugin_") and value:
+                        plugin_module = field_name.replace("plugin_", "")
+                        event.enable_plugin(plugin_module)
 
         return redirect(event.orga_urls.base + "?congratulations")
 

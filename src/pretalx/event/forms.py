@@ -19,6 +19,7 @@ from pretalx.common.forms.widgets import (
     HtmlDateTimeInput,
     TextInputWithAddon,
 )
+from pretalx.common.plugins import get_all_plugins_grouped
 from pretalx.common.text.phrases import phrases
 from pretalx.event.models import Event, Organiser, Team, TeamInvite
 from pretalx.orga.forms.widgets import HeaderSelect, MultipleLanguagesWidget
@@ -329,3 +330,20 @@ class EventWizardCopyForm(forms.Form):
             empty_label=_("Do not copy"),
             required=False,
         )
+
+
+class EventWizardPluginsForm(forms.Form):
+    def __init__(self, *args, user=None, locales=None, organiser=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.grouped_plugins = get_all_plugins_grouped(event=None, filter_visible=True)
+
+        for category, plugins in self.grouped_plugins.items():
+            for plugin in plugins:
+                field_name = f"plugin_{plugin.module}"
+                self.fields[field_name] = forms.BooleanField(
+                    label=plugin.name,
+                    required=False,
+                    help_text=getattr(plugin, "description", ""),
+                )
+                self.fields[field_name].plugin_module = plugin.module
+                self.fields[field_name].plugin_category = category[0]
