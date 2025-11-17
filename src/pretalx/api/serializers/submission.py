@@ -19,6 +19,7 @@ from pretalx.submission.models import (
     QuestionTarget,
     Resource,
     Submission,
+    SubmissionInvitation,
     SubmissionType,
     Tag,
     Track,
@@ -36,6 +37,14 @@ class ResourceSerializer(FlexFieldsSerializerMixin, PretalxSerializer):
     class Meta:
         model = Resource
         fields = ("id", "resource", "description")
+
+
+@register_serializer(versions=CURRENT_VERSIONS)
+class SubmissionInvitationSerializer(FlexFieldsSerializerMixin, PretalxSerializer):
+    class Meta:
+        model = SubmissionInvitation
+        fields = ("id", "email", "created", "updated")
+        read_only_fields = ("id", "created", "updated")
 
 
 @register_serializer(versions=CURRENT_VERSIONS)
@@ -149,6 +158,7 @@ class SubmissionSerializer(FlexFieldsSerializerMixin, PretalxSerializer):
     answers = serializers.SerializerMethodField()
     slots = serializers.SerializerMethodField()
     resources = serializers.SerializerMethodField()
+    invitations = serializers.SerializerMethodField()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -226,6 +236,16 @@ class SubmissionSerializer(FlexFieldsSerializerMixin, PretalxSerializer):
         if public_resources:
             qs = obj.public_resources
         if serializer := self.get_extra_flex_field("resources", qs):
+            return serializer.data
+        return qs.values_list("pk", flat=True)
+
+    @extend_schema_field(list[int])
+    def get_invitations(self, obj):
+        # Only show invitations to organizers
+        if not self.context.get("show_invitations", False):
+            return []
+        qs = obj.invitations.all()
+        if serializer := self.get_extra_flex_field("invitations", qs):
             return serializer.data
         return qs.values_list("pk", flat=True)
 
@@ -381,6 +401,7 @@ class SubmissionOrgaSerializer(SubmissionSerializer):
             "is_anonymised",
             "median_score",
             "mean_score",
+            "invitations",
         ]
         # Reviews and assigned reviewers are currently not expandable because
         # reviewers are also receiving the ReviewerOrgaSerializer, but may
@@ -388,6 +409,10 @@ class SubmissionOrgaSerializer(SubmissionSerializer):
         extra_expandable_fields = SubmissionSerializer.Meta.extra_expandable_fields | {
             "speakers": (
                 "pretalx.api.serializers.speaker.SpeakerOrgaSerializer",
+                {"many": True, "read_only": True},
+            ),
+            "invitations": (
+                "pretalx.api.serializers.submission.SubmissionInvitationSerializer",
                 {"many": True, "read_only": True},
             ),
         }

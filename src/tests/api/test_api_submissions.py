@@ -75,7 +75,9 @@ def test_submission_serializer_for_organiser(submission, orga_user, resource, ta
     with scope(event=submission.event):
         submission.tags.add(tag)
         submission.favourite_count = 3
-        data = SubmissionOrgaSerializer(submission).data
+        data = SubmissionOrgaSerializer(
+            submission, context={"show_invitations": True}
+        ).data
         assert set(data.keys()) == {
             "code",
             "speakers",
@@ -107,9 +109,11 @@ def test_submission_serializer_for_organiser(submission, orga_user, resource, ta
             "reviews",
             "is_anonymised",
             "slots",
+            "invitations",
         }
         assert isinstance(data["speakers"], list)
         assert data["tags"] == [tag.id]
+        assert isinstance(data["invitations"], list)
 
 
 @pytest.mark.django_db
@@ -1662,3 +1666,148 @@ def test_log_endpoint_pagination(client, orga_user_write_token, submission, orga
     if "results" in content:
         assert "count" in content
         assert "next" in content or "previous" in content
+
+
+@pytest.mark.django_db
+def test_orga_can_create_invitation(client, orga_user_write_token, submission):
+    url = (
+        submission.event.api_urls.submissions
+        + f"{submission.code}/create-invitation/"
+    )
+    response = client.post(
+        url,
+        data=json.dumps({"email": "new@speaker.org"}),
+        content_type="application/json",
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
+    )
+    content = json.loads(response.text)
+
+    assert response.status_code == 200, content
+    with scope(event=submission.event):
+        from pretalx.submission.models import SubmissionInvitation
+
+        assert SubmissionInvitation.objects.filter(
+            submission=submission, email="new@speaker.org"
+        ).exists()
+
+
+@pytest.mark.django_db
+def test_cannot_create_duplicate_invitation(client, orga_user_write_token, submission):
+    from pretalx.submission.models import SubmissionInvitation
+
+    with scope(event=submission.event):
+        SubmissionInvitation.objects.create(
+            submission=submission, email="new@speaker.org"
+        )
+
+    url = (
+        submission.event.api_urls.submissions
+        + f"{submission.code}/create-invitation/"
+    )
+    response = client.post(
+        url,
+        data=json.dumps({"email": "new@speaker.org"}),
+        content_type="application/json",
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
+    )
+    content = json.loads(response.text)
+
+    assert response.status_code == 400, content
+    assert "already been invited" in content["detail"]
+
+
+@pytest.mark.django_db
+def test_orga_can_delete_invitation(client, orga_user_write_token, submission):
+    from pretalx.submission.models import SubmissionInvitation
+
+    with scope(event=submission.event):
+        invitation = SubmissionInvitation.objects.create(
+            submission=submission, email="new@speaker.org"
+        )
+
+    url = (
+        submission.event.api_urls.submissions
+        + f"{submission.code}/delete-invitation/"
+    )
+    response = client.post(
+        url,
+        data=json.dumps({"id": invitation.pk}),
+        content_type="application/json",
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
+    )
+    content = json.loads(response.text)
+
+    assert response.status_code == 200, content
+    with scope(event=submission.event):
+        assert not SubmissionInvitation.objects.filter(pk=invitation.pk).exists()
+
+
+@pytest.mark.django_db
+def test_orga_can_resend_invitation(client, orga_user_write_token, submission):
+    from pretalx.submission.models import SubmissionInvitation
+
+    with scope(event=submission.event):
+        invitation = SubmissionInvitation.objects.create(
+            submission=submission, email="new@speaker.org"
+        )
+
+    url = (
+        submission.event.api_urls.submissions
+        + f"{submission.code}/resend-invitation/"
+    )
+    response = client.post(
+        url,
+        data=json.dumps({"id": invitation.pk}),
+        content_type="application/json",
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
+    )
+    content = json.loads(response.text)
+
+    assert response.status_code == 200, content
+
+
+@pytest.mark.django_db
+def test_orga_can_expand_invitations(client, orga_user_write_token, submission):
+    from pretalx.submission.models import SubmissionInvitation
+
+    with scope(event=submission.event):
+        invitation = SubmissionInvitation.objects.create(
+            submission=submission, email="new@speaker.org"
+        )
+
+    url = (
+        submission.event.api_urls.submissions
+        + f"{submission.code}/?expand=invitations"
+    )
+    response = client.get(
+        url,
+        headers={"Authorization": f"Token {orga_user_write_token.token}"},
+    )
+    content = json.loads(response.text)
+
+    assert response.status_code == 200, content
+    assert "invitations" in content
+    assert isinstance(content["invitations"], list)
+    assert len(content["invitations"]) == 1
+    assert content["invitations"][0]["email"] == "new@speaker.org"
+
+
+@pytest.mark.django_db
+def test_non_orga_cannot_see_invitations(client, review_user_token, submission):
+    from pretalx.submission.models import SubmissionInvitation
+
+    with scope(event=submission.event):
+        SubmissionInvitation.objects.create(
+            submission=submission, email="new@speaker.org"
+        )
+
+    url = submission.event.api_urls.submissions + f"{submission.code}/"
+    response = client.get(
+        url,
+        headers={"Authorization": f"Token {review_user_token.token}"},
+    )
+    content = json.loads(response.text)
+
+    assert response.status_code == 200, content
+    # invitations field should not be present for non-orga users
+    assert "invitations" not in content or content.get("invitations") == []

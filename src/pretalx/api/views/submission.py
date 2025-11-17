@@ -59,6 +59,14 @@ class RemoveSpeakerSerializer(serializers.Serializer):
     user = serializers.CharField(required=True)
 
 
+class CreateInvitationSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+
+
+class InvitationIdSerializer(serializers.Serializer):
+    id = serializers.IntegerField(required=True)
+
+
 with scopes_disabled():
 
     class SubmissionFilter(filters.FilterSet):
@@ -94,6 +102,7 @@ with scopes_disabled():
                 "answers",
                 "answers.question",
                 "resources",
+                "invitations",
             ),
         ],
     ),
@@ -109,6 +118,7 @@ with scopes_disabled():
                 "slots.room",
                 "answers",
                 "resources",
+                "invitations",
             ),
         ],
     ),
@@ -147,6 +157,21 @@ with scopes_disabled():
         request=RemoveSpeakerSerializer,
         responses={200: SubmissionOrgaSerializer},
     ),
+    create_invitation=extend_schema(
+        summary="Create Speaker Invitation",
+        request=CreateInvitationSerializer,
+        responses={200: SubmissionOrgaSerializer},
+    ),
+    resend_invitation=extend_schema(
+        summary="Resend Speaker Invitation",
+        request=InvitationIdSerializer,
+        responses={200: SubmissionOrgaSerializer},
+    ),
+    delete_invitation=extend_schema(
+        summary="Delete Speaker Invitation",
+        request=InvitationIdSerializer,
+        responses={200: SubmissionOrgaSerializer},
+    ),
 )
 class SubmissionViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelViewSet):
     serializer_class = SubmissionSerializer
@@ -160,6 +185,9 @@ class SubmissionViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelVie
         "make_submitted": "submission.state_change_submission",
         "add_speaker": "submission.update_submission",
         "remove_speaker": "submission.update_submission",
+        "create_invitation": "submission.update_submission",
+        "resend_invitation": "submission.update_submission",
+        "delete_invitation": "submission.update_submission",
     }
     endpoint = "submissions"
 
@@ -240,6 +268,10 @@ class SubmissionViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelVie
         context["schedule"] = self.event.current_schedule
         context["public_slots"] = not self.has_perm("delete")
         context["public_resources"] = not self.is_orga
+        # Only show invitations to users who can update submissions
+        context["show_invitations"] = self.request.user.has_perm(
+            "submission.orga_update_submission", self.event
+        )
         return context
 
     def get_queryset(self):
@@ -362,6 +394,96 @@ class SubmissionViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelVie
         submission.remove_speaker(speaker, user=self.request.user)
         submission.refresh_from_db()
         return Response(SubmissionOrgaSerializer(submission).data)
+
+    @action(detail=True, methods=["POST"], url_path="create-invitation")
+    def create_invitation(self, request, **kwargs):
+        from pretalx.submission.models import SubmissionInvitation
+
+        serializer = CreateInvitationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        submission = self.get_object()
+        email = serializer.validated_data["email"].lower()
+
+        # Check if user is already a speaker
+        if submission.speakers.filter(email__iexact=email).exists():
+            return Response(
+                {"detail": "This person is already a speaker for this submission."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Check if there's already a pending invitation
+        if SubmissionInvitation.objects.filter(
+            submission=submission, email__iexact=email
+        ).exists():
+            return Response(
+                {"detail": "This person has already been invited."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        invitation = SubmissionInvitation.objects.create(
+            submission=submission, email=email
+        )
+        invitation.send()
+        submission.log_action(
+            "pretalx.submission.speakers.invite", person=self.request.user, orga=True
+        )
+        submission.refresh_from_db()
+        return Response(
+            SubmissionOrgaSerializer(
+                submission, context=self.get_serializer_context()
+            ).data
+        )
+
+    @action(detail=True, methods=["POST"], url_path="resend-invitation")
+    def resend_invitation(self, request, **kwargs):
+        from pretalx.submission.models import SubmissionInvitation
+
+        serializer = InvitationIdSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        submission = self.get_object()
+        invitation = SubmissionInvitation.objects.filter(
+            pk=serializer.validated_data["id"], submission=submission
+        ).first()
+        if not invitation:
+            return Response(
+                {"detail": "Invitation not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        invitation.send()
+        submission.refresh_from_db()
+        return Response(
+            SubmissionOrgaSerializer(
+                submission, context=self.get_serializer_context()
+            ).data
+        )
+
+    @action(detail=True, methods=["POST"], url_path="delete-invitation")
+    def delete_invitation(self, request, **kwargs):
+        from pretalx.submission.models import SubmissionInvitation
+
+        serializer = InvitationIdSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        submission = self.get_object()
+        invitation = SubmissionInvitation.objects.filter(
+            pk=serializer.validated_data["id"], submission=submission
+        ).first()
+        if not invitation:
+            return Response(
+                {"detail": "Invitation not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        email = invitation.email
+        invitation.delete()
+        submission.log_action(
+            "pretalx.submission.speakers.invite.retract",
+            person=self.request.user,
+            orga=True,
+            data={"email": email},
+        )
+        submission.refresh_from_db()
+        return Response(
+            SubmissionOrgaSerializer(
+                submission, context=self.get_serializer_context()
+            ).data
+        )
 
 
 @extend_schema(
