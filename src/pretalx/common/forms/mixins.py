@@ -35,6 +35,45 @@ logger = logging.getLogger(__name__)
 
 WORD_REGEX = re.compile(r"\b\w+\b")
 
+# Available file types for file upload questions
+ALL_FILE_TYPES = {
+    ".png": ["image/png", ".png"],
+    ".jpg": ["image/jpeg", ".jpg"],
+    ".gif": ["image/gif", ".gif"],
+    ".jpeg": ["image/jpeg", ".jpeg"],
+    ".svg": ["image/svg+xml", ".svg"],
+    ".bmp": ["image/bmp", ".bmp"],
+    ".tif": ["image/tiff", ".tif"],
+    ".tiff": ["image/tiff", ".tiff"],
+    ".pdf": [
+        "application/pdf",
+        "application/x-pdf",
+        "application/acrobat",
+        "applications/vnd.pdf",
+        ".pdf",
+    ],
+    ".txt": ["text/plain"],
+    ".docx": [
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword",
+        ".docx",
+    ],
+    ".doc": [".doc"],
+    ".rtf": ["application/rtf"],
+    ".pptx": [
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "application/vnd.ms-powerpoint",
+        ".pptx",
+    ],
+    ".ppt": [".ppt"],
+    ".xlsx": [
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel",
+        ".xlsx",
+    ],
+    ".xls": [".xls"],
+}
+
 
 class ReadOnlyFlag:
     def __init__(self, *args, read_only=False, **kwargs):
@@ -275,49 +314,30 @@ class QuestionFieldsMixin:
                     field.widget.attrs["data-maxlength"] = question.max_length
             return field
         if question.variant == QuestionVariant.FILE:
+            # Use question's allowed file types if specified, otherwise allow all types
+            allowed_types = question.allowed_file_types
+            if allowed_types:
+                # Build extensions dict from allowed types
+                extensions = {}
+                for ext in allowed_types:
+                    if ext in ALL_FILE_TYPES:
+                        extensions[ext] = ALL_FILE_TYPES[ext]
+                    # Also add related extensions (e.g., .jpeg for .jpg)
+                    if ext == ".jpg" and ".jpeg" in ALL_FILE_TYPES:
+                        extensions[".jpeg"] = ALL_FILE_TYPES[".jpeg"]
+                    elif ext == ".tif" and ".tiff" in ALL_FILE_TYPES:
+                        extensions[".tiff"] = ALL_FILE_TYPES[".tiff"]
+            else:
+                # If no restrictions, allow all file types
+                extensions = ALL_FILE_TYPES
+
             field = ExtensionFileField(
                 label=question.question,
                 required=question.required,
                 disabled=read_only,
                 help_text=help_text,
                 initial=initial,
-                extensions={
-                    ".png": ["image/png", ".png"],
-                    ".jpg": ["image/jpeg", ".jpg"],
-                    ".gif": ["image/gif", ".gif"],
-                    ".jpeg": ["image/jpeg", ".jpeg"],
-                    ".svg": ["image/svg+xml", ".svg"],
-                    ".bmp": ["image/bmp", ".bmp"],
-                    ".tif": ["image/tiff", ".tif"],
-                    ".tiff": ["image/tiff", ".tiff"],
-                    ".pdf": [
-                        "application/pdf",
-                        "application/x-pdf",
-                        "application/acrobat",
-                        "applications/vnd.pdf",
-                        ".pdf",
-                    ],
-                    ".txt": ["text/plain"],
-                    ".docx": [
-                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                        "application/msword",
-                        ".docx",
-                    ],
-                    "doc": [".doc"],
-                    "rtf": ["application/rtf"],
-                    ".pptx": [
-                        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                        "application/vnd.ms-powerpoint",
-                        ".pptx",
-                    ],
-                    ".ppt": [".ppt"],
-                    ".xlsx": [
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        "application/vnd.ms-excel",
-                        ".xlsx",
-                    ],
-                    ".xls": [".xls"],
-                },
+                extensions=extensions,
             )
             field.original_help_text = original_help_text
             field.widget.attrs["placeholder"] = ""  # XSS

@@ -7,6 +7,7 @@
 import pytest
 from django_scopes import scope
 
+from pretalx.common.forms.mixins import ALL_FILE_TYPES, QuestionFieldsMixin
 from pretalx.submission.models import Answer, Question
 
 
@@ -138,3 +139,80 @@ def test_answer_string_property(event, variant, answer, expected):
         question = Question.objects.create(question="?", variant=variant, event=event)
         answer = Answer.objects.create(question=question, answer=answer)
         assert answer.answer_string == expected
+
+
+@pytest.mark.django_db
+def test_question_allowed_file_types_default(event):
+    """Test that allowed_file_types defaults to an empty list."""
+    with scope(event=event):
+        question = Question.objects.create(
+            question="Upload a file", variant="file", event=event
+        )
+        assert question.allowed_file_types == []
+
+
+@pytest.mark.django_db
+def test_question_allowed_file_types_can_be_set(event):
+    """Test that allowed_file_types can be set and persisted."""
+    with scope(event=event):
+        question = Question.objects.create(
+            question="Upload a file",
+            variant="file",
+            event=event,
+            allowed_file_types=[".pdf", ".docx"],
+        )
+        assert question.allowed_file_types == [".pdf", ".docx"]
+
+        # Verify it persists
+        question.refresh_from_db()
+        assert question.allowed_file_types == [".pdf", ".docx"]
+
+
+@pytest.mark.django_db
+def test_question_file_field_uses_all_types_when_no_restriction(event):
+    """Test that file upload fields allow all types when no restriction is set."""
+    with scope(event=event):
+        question = Question.objects.create(
+            question="Upload a file", variant="file", event=event
+        )
+
+        # Create a mixin instance to test get_field
+        class TestMixin(QuestionFieldsMixin):
+            pass
+
+        mixin = TestMixin()
+        mixin.event = event
+        field = mixin.get_field(
+            question=question, initial=None, initial_object=None, readonly=False
+        )
+
+        # Should allow all file types
+        assert field.extensions == ALL_FILE_TYPES
+
+
+@pytest.mark.django_db
+def test_question_file_field_uses_restricted_types(event):
+    """Test that file upload fields only allow specified types when restriction is set."""
+    with scope(event=event):
+        question = Question.objects.create(
+            question="Upload a file",
+            variant="file",
+            event=event,
+            allowed_file_types=[".pdf", ".docx"],
+        )
+
+        # Create a mixin instance to test get_field
+        class TestMixin(QuestionFieldsMixin):
+            pass
+
+        mixin = TestMixin()
+        mixin.event = event
+        field = mixin.get_field(
+            question=question, initial=None, initial_object=None, readonly=False
+        )
+
+        # Should only allow .pdf and .docx
+        assert ".pdf" in field.extensions
+        assert ".docx" in field.extensions
+        assert ".png" not in field.extensions
+        assert ".jpg" not in field.extensions

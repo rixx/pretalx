@@ -41,6 +41,7 @@ def test_question_serializer(answer):
         "min_number",
         "max_number",
         "position",
+        "allowed_file_types",
     }
 
 

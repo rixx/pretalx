@@ -43,6 +43,24 @@ from pretalx.submission.models import (
 from pretalx.submission.models.cfp import CfP, default_fields
 from pretalx.submission.models.question import QuestionRequired
 
+FILE_TYPE_CHOICES = [
+    (".png", _("PNG images (.png)")),
+    (".jpg", _("JPEG images (.jpg, .jpeg)")),
+    (".gif", _("GIF images (.gif)")),
+    (".svg", _("SVG images (.svg)")),
+    (".bmp", _("BMP images (.bmp)")),
+    (".tif", _("TIFF images (.tif, .tiff)")),
+    (".pdf", _("PDF documents (.pdf)")),
+    (".txt", _("Text files (.txt)")),
+    (".docx", _("Word documents (.docx)")),
+    (".doc", _("Word documents legacy (.doc)")),
+    (".rtf", _("Rich text documents (.rtf)")),
+    (".pptx", _("PowerPoint presentations (.pptx)")),
+    (".ppt", _("PowerPoint presentations legacy (.ppt)")),
+    (".xlsx", _("Excel spreadsheets (.xlsx)")),
+    (".xls", _("Excel spreadsheets legacy (.xls)")),
+]
+
 
 class CfPSettingsForm(
     ReadOnlyFlag, PretalxI18nFormMixin, JsonSubfieldMixin, forms.Form
@@ -213,6 +231,16 @@ class QuestionForm(ReadOnlyFlag, PretalxI18nModelForm):
     def __init__(self, *args, event=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["icon"].required = False
+        self.fields["allowed_file_types"] = forms.MultipleChoiceField(
+            label=_("Allowed file types"),
+            help_text=_(
+                "Select which file types are allowed for upload. If no types are selected, all common file types will be allowed."
+            ),
+            choices=FILE_TYPE_CHOICES,
+            required=False,
+            widget=forms.CheckboxSelectMultiple,
+            initial=self.instance.allowed_file_types if self.instance.pk else [],
+        )
         if not (
             event.get_feature_flag("use_tracks")
             and event.tracks.all().count()
@@ -273,6 +301,12 @@ class QuestionForm(ReadOnlyFlag, PretalxI18nModelForm):
 
     def save(self, *args, **kwargs):
         instance = super().save(*args, **kwargs)
+
+        # Save allowed file types
+        allowed_file_types = self.cleaned_data.get("allowed_file_types", [])
+        instance.allowed_file_types = list(allowed_file_types)
+        instance.save()
+
         options = self.cleaned_data.get("options")
         options_replace = self.cleaned_data.get("options_replace")
         if not options:

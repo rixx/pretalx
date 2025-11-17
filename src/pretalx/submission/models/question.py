@@ -323,6 +323,14 @@ class Question(OrderedModel, PretalxModel):
             "Custom URL fields that are shown publicly can use an icon when displaying the link."
         ),
     )
+    allowed_file_types = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name=_("Allowed file types"),
+        help_text=_(
+            "Select which file types are allowed for upload. If empty, all common file types are allowed."
+        ),
+    )
     objects = ScopedManager(event="event", _manager_class=QuestionManager)
     all_objects = ScopedManager(event="event", _manager_class=AllQuestionManager)
 
