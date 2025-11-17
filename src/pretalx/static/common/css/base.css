@@ -617,6 +617,10 @@ a {
 .alert.alert-danger:before {
   content: "";
 }
+.alert-danger a {
+  color: inherit;
+  text-decoration: underline;
+}
 
 .btn-outline-success {
   --highlight-color: var(--color-success);
