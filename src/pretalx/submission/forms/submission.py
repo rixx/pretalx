@@ -76,6 +76,7 @@ class InfoForm(CfPFormMixin, RequestRequire, PublicContent, forms.ModelForm):
         self._set_submission_types(instance=instance)
         self._set_locales()
         self._set_slot_count(instance=instance)
+        self._set_tags()
 
         if self.readonly:
             for field in self.fields.values():
@@ -179,6 +180,44 @@ class InfoForm(CfPFormMixin, RequestRequire, PublicContent, forms.ModelForm):
                     "Please contact the organisers if you want to change how often you’re presenting this proposal."
                 )
             )
+
+    def _set_tags(self):
+        # Dynamically add tags field to avoid scope errors at class definition time
+        from django.forms import ModelMultipleChoiceField
+        from functools import partial
+        from pretalx.common.forms.mixins import RequestRequire
+        from pretalx.submission.models.cfp import default_fields
+
+        visibility = self.event.cfp.fields.get("tags", default_fields()["tags"])["visibility"]
+        if visibility == "do_not_ask":
+            return
+
+        # Create the field dynamically
+        field = ModelMultipleChoiceField(
+            queryset=self.event.tags.filter(is_public=True),
+            required=(visibility == "required"),
+            widget=SelectMultipleWithCount(color_field="color"),
+            label=_("Tags"),
+        )
+
+        # Apply min/max number validation
+        min_value = self.event.cfp.fields.get("tags", {}).get("min_number")
+        max_value = self.event.cfp.fields.get("tags", {}).get("max_number")
+        if min_value or max_value:
+            field.validators.append(
+                partial(
+                    RequestRequire.validate_tags_count,
+                    min_count=min_value,
+                    max_count=max_value,
+                )
+            )
+            field.help_text = RequestRequire.get_tags_help_text(
+                "",
+                min_value,
+                max_value,
+            )
+
+        self.fields["tags"] = field
 
     def save(self, *args, **kwargs):
         for key, value in self.default_values.items():

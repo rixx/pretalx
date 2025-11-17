@@ -90,6 +90,7 @@ class CfPSettingsForm(
                 "mail_on_new_submission"
             ].help_text += f' (<a href="mailto:{obj.email}">{obj.email}</a>)'
         self.length_fields = ["title", "abstract", "description", "biography"]
+        self.number_fields = ["tags"]
         self.request_require_fields = [
             "abstract",
             "description",
@@ -103,6 +104,7 @@ class CfPSettingsForm(
             "track",
             "duration",
             "content_locale",
+            "tags",
         ]
         for attribute in self.length_fields:
             field_name = f"cfp_{attribute}_min_length"
@@ -117,6 +119,21 @@ class CfPSettingsForm(
                 required=False,
                 min_value=0,
                 initial=obj.cfp.fields[attribute].get("max_length"),
+            )
+            self.fields[field_name].widget.attrs["placeholder"] = ""
+        for attribute in self.number_fields:
+            field_name = f"cfp_{attribute}_min_number"
+            self.fields[field_name] = forms.IntegerField(
+                required=False,
+                min_value=0,
+                initial=obj.cfp.fields.get(attribute, default_fields()[attribute]).get("min_number"),
+            )
+            self.fields[field_name].widget.attrs["placeholder"] = ""
+            field_name = f"cfp_{attribute}_max_number"
+            self.fields[field_name] = forms.IntegerField(
+                required=False,
+                min_value=0,
+                initial=obj.cfp.fields.get(attribute, default_fields()[attribute]).get("max_number"),
             )
             self.fields[field_name].widget.attrs["placeholder"] = ""
         for attribute in self.request_require_fields:
@@ -134,6 +151,10 @@ class CfPSettingsForm(
             )
         if not obj.is_multilingual:
             self.fields.pop("cfp_ask_content_locale", None)
+        if "cfp_ask_tags" in self.fields:
+            self.fields["cfp_ask_tags"].help_text = _(
+                '<i class="fa fa-info-circle" title="Only public tags will be included"></i> Only public tags will be included.'
+            )
 
     def save(self, *args, **kwargs):
         for key in self.request_require_fields:
@@ -148,6 +169,13 @@ class CfPSettingsForm(
             )
             self.instance.cfp.fields[key]["max_length"] = self.cleaned_data.get(
                 f"cfp_{key}_max_length"
+            )
+        for key in self.number_fields:
+            self.instance.cfp.fields[key]["min_number"] = self.cleaned_data.get(
+                f"cfp_{key}_min_number"
+            )
+            self.instance.cfp.fields[key]["max_number"] = self.cleaned_data.get(
+                f"cfp_{key}_max_number"
             )
         self.instance.cfp.save()
         super().save(*args, **kwargs)

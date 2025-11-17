@@ -84,31 +84,55 @@ class RequestRequire:
                 self.fields.pop(key, None)
             elif field := self.fields.get(key):
                 field.required = visibility == "required"
-                min_value = self.event.cfp.fields.get(key, {}).get("min_length")
-                max_value = self.event.cfp.fields.get(key, {}).get("max_length")
-                if min_value or max_value:
-                    if min_value and count_chars:
-                        field.widget.attrs["data-minlength"] = min_value
-                    if max_value and count_chars:
-                        field.widget.attrs["data-maxlength"] = max_value
-                    field.validators.append(
-                        partial(
-                            self.validate_field_length,
-                            min_length=min_value,
-                            max_length=max_value,
-                            count_in=self.event.cfp.settings["count_length_in"],
+
+                # Handle tags field (min/max number)
+                if key == "tags":
+                    min_value = self.event.cfp.fields.get(key, {}).get("min_number")
+                    max_value = self.event.cfp.fields.get(key, {}).get("max_number")
+                    if min_value or max_value:
+                        field.validators.append(
+                            partial(
+                                self.validate_tags_count,
+                                min_count=min_value,
+                                max_count=max_value,
+                            )
                         )
-                    )
-                    field.original_help_text = getattr(field, "original_help_text", "")
-                    field.added_help_text = self.get_help_text(
-                        "",
-                        min_value,
-                        max_value,
-                        self.event.cfp.settings["count_length_in"],
-                    )
-                    field.help_text = (
-                        field.original_help_text + " " + field.added_help_text
-                    )
+                        field.original_help_text = getattr(field, "original_help_text", "")
+                        field.added_help_text = self.get_tags_help_text(
+                            "",
+                            min_value,
+                            max_value,
+                        )
+                        field.help_text = (
+                            field.original_help_text + " " + field.added_help_text
+                        )
+                # Handle text fields (min/max length)
+                else:
+                    min_value = self.event.cfp.fields.get(key, {}).get("min_length")
+                    max_value = self.event.cfp.fields.get(key, {}).get("max_length")
+                    if min_value or max_value:
+                        if min_value and count_chars:
+                            field.widget.attrs["data-minlength"] = min_value
+                        if max_value and count_chars:
+                            field.widget.attrs["data-maxlength"] = max_value
+                        field.validators.append(
+                            partial(
+                                self.validate_field_length,
+                                min_length=min_value,
+                                max_length=max_value,
+                                count_in=self.event.cfp.settings["count_length_in"],
+                            )
+                        )
+                        field.original_help_text = getattr(field, "original_help_text", "")
+                        field.added_help_text = self.get_help_text(
+                            "",
+                            min_value,
+                            max_value,
+                            self.event.cfp.settings["count_length_in"],
+                        )
+                        field.help_text = (
+                            field.original_help_text + " " + field.added_help_text
+                        )
 
     @staticmethod
     def get_help_text(text, min_length, max_length, count_in="chars"):
@@ -152,6 +176,31 @@ class RequestRequire:
                 "words": _("You wrote {count} words."),
             }
             error_message += " " + str(errors[count_in]).format(count=length)
+            raise forms.ValidationError(error_message)
+
+    @staticmethod
+    def get_tags_help_text(text, min_count, max_count):
+        if not min_count and not max_count:
+            return text
+        if text:
+            text = str(text) + " "
+        else:
+            text = ""
+        if min_count and max_count:
+            message = _("Please select between {min_count} and {max_count} tags.")
+        elif min_count:
+            message = _("Please select at least {min_count} tags.")
+        else:
+            message = _("Please select at most {max_count} tags.")
+        return (text + str(message).format(min_count=min_count, max_count=max_count)).strip()
+
+    @staticmethod
+    def validate_tags_count(value, min_count, max_count):
+        # value is a QuerySet for ManyToManyField
+        count = len(value) if hasattr(value, "__len__") else value.count()
+        if (min_count and min_count > count) or (max_count and max_count < count):
+            error_message = RequestRequire.get_tags_help_text("", min_count, max_count)
+            error_message += " " + str(_("You selected {count} tags.")).format(count=count)
             raise forms.ValidationError(error_message)
 
 
