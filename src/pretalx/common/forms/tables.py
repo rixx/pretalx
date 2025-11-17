@@ -50,3 +50,18 @@ class TablePreferencesForm(forms.Form):
         self.fields["columns"].choices = visible
         self.fields["columns"].initial = []
         self.fields["available_columns"].choices = sorted(hidden)
+
+    def get_sortable_columns(self):
+        """Get all sortable columns for this table."""
+        sortable = []
+        for name, column in self.table.columns.items():
+            if name not in self.table.exempt_columns and column.orderable:
+                sortable.append((name, str(column.verbose_name)))
+        return sortable
+
+    def get_current_ordering(self):
+        """Get current ordering from table."""
+        ordering = getattr(self.table, "order_by", None)
+        if ordering:
+            return list(ordering)
+        return []

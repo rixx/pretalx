@@ -7,6 +7,9 @@ const setupPreferenceModal = (form) => {
     const dialog = form.closest("dialog")
     const availableSelect = form.querySelector(".available-columns")
     const selectedSelect = form.querySelector(".selected-columns")
+    const sortingRowsContainer = form.querySelector(".sorting-rows-container")
+    const sortingRowTemplate = form.querySelector(".sorting-row-template")
+    const addSortRowBtn = form.querySelector(".add-sort-row")
 
     const moveOptions = (from, to, selected = false) => {
       const options = Array.from(from.selectedOptions)
@@ -52,6 +55,82 @@ const setupPreferenceModal = (form) => {
       }
     }
 
+    const getSortRowLabels = () => ["Primary", "Secondary", "Tertiary", "Quaternary", "Quinary"]
+
+    const updateSortRowLabels = () => {
+      const rows = sortingRowsContainer.querySelectorAll(".sorting-row")
+      const labels = getSortRowLabels()
+      rows.forEach((row, index) => {
+        const label = row.querySelector(".sort-label")
+        if (label) {
+          label.textContent = `${labels[index] || `Sort ${index + 1}`}:`
+        }
+      })
+    }
+
+    const createSortRow = (field = "", direction = "") => {
+      const clone = sortingRowTemplate.cloneNode(true)
+      clone.classList.remove("d-none")
+      const row = clone.querySelector(".sorting-row")
+
+      const fieldSelect = row.querySelector(".sort-field")
+      const directionSelect = row.querySelector(".sort-direction")
+
+      if (field) {
+        if (field.startsWith("-")) {
+          fieldSelect.value = field.substring(1)
+          directionSelect.value = "-"
+        } else {
+          fieldSelect.value = field
+          directionSelect.value = ""
+        }
+      }
+
+      row.querySelector(".remove-sort-row")?.addEventListener("click", () => {
+        row.parentElement.remove()
+        updateSortRowLabels()
+      })
+
+      sortingRowsContainer.appendChild(clone)
+      updateSortRowLabels()
+      return row
+    }
+
+    const initializeSortRows = () => {
+      const currentOrderingEl = document.getElementById("current-ordering")
+      let currentOrdering = []
+
+      if (currentOrderingEl) {
+        try {
+          currentOrdering = JSON.parse(currentOrderingEl.textContent)
+        } catch (e) {
+          console.error("Failed to parse current ordering:", e)
+        }
+      }
+
+      if (currentOrdering && currentOrdering.length > 0) {
+        currentOrdering.forEach((field) => createSortRow(field))
+      } else {
+        createSortRow()
+      }
+    }
+
+    const collectOrdering = () => {
+      const rows = sortingRowsContainer.querySelectorAll(".sorting-row")
+      const ordering = []
+
+      rows.forEach((row) => {
+        const field = row.querySelector(".sort-field").value
+        const direction = row.querySelector(".sort-direction").value
+
+        if (field) {
+          ordering.push(direction + field)
+        }
+      })
+
+      return ordering
+    }
+
     form.querySelector(".add-columns")?.addEventListener("click", () => {
       moveOptions(availableSelect, selectedSelect, true)
     })
@@ -77,6 +156,10 @@ const setupPreferenceModal = (form) => {
       }
     })
 
+    addSortRowBtn?.addEventListener("click", () => {
+      createSortRow()
+    })
+
     const getEventSlug = () => {
       const pathParts = window.location.pathname.split("/")
       const eventIndex = pathParts.indexOf("event")
@@ -92,6 +175,7 @@ const setupPreferenceModal = (form) => {
       })
 
       const columns = Array.from(selectedSelect.options).map((opt) => opt.value)
+      const ordering = collectOrdering()
 
       try {
         const eventSlug = getEventSlug()
@@ -109,6 +193,7 @@ const setupPreferenceModal = (form) => {
           body: JSON.stringify({
             table_name: tableName,
             columns: columns,
+            ordering: ordering,
           }),
         })
 
@@ -160,6 +245,9 @@ const setupPreferenceModal = (form) => {
       }
     })
 
+    if (sortingRowsContainer) {
+      initializeSortRows()
+    }
 }
 
 const handleTablePreferences = () => {

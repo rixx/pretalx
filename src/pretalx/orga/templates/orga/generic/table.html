@@ -67,6 +67,39 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
                                     </div>
                                 </div>
                             </div>
+
+                            <hr class="my-4">
+
+                            <div class="sorting-section">
+                                <h4>{% translate "Sorting" %}</h4>
+                                {{ table.configuration_form.get_current_ordering|json_script:"current-ordering" }}
+                                <div class="sorting-rows">
+                                    <div class="sorting-row-template d-none">
+                                        <div class="sorting-row d-flex align-items-center mb-2">
+                                            <label class="mr-2 mb-0 sort-label"></label>
+                                            <select class="form-control mr-2 sort-field" style="flex: 1;">
+                                                <option value="">{% translate "Select field..." %}</option>
+                                                {% for value, label in table.configuration_form.get_sortable_columns %}
+                                                    <option value="{{ value }}">{{ label }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <select class="form-control mr-2 sort-direction" style="width: 150px;">
+                                                <option value="">{% translate "Ascending" %}</option>
+                                                <option value="-">{% translate "Descending" %}</option>
+                                            </select>
+                                            <button type="button" class="btn btn-sm btn-danger remove-sort-row">
+                                                <i class="fa fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="sorting-rows-container">
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-info mt-2 add-sort-row">
+                                    <i class="fa fa-plus"></i> {% translate "Add sort field" %}
+                                </button>
+                            </div>
+
                             <div class="submit-group mt-4">
                                 <button type="button" class="btn btn-outline-danger mr-2 reset-preferences">
                                     {% translate "Reset to defaults" %}

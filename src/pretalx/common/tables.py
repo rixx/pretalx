@@ -186,11 +186,34 @@ class PretalxTable(tables.Table):
         # If an ordering has been specified as a query parameter, save it as the
         # user's preferred ordering for this table.
         if request.user.is_authenticated and self.event:
-            if ordering := request.GET.getlist(self.prefixed_order_by_field):
-                preferences = request.user.get_event_preferences(self.event)
-                preferences.set(f"tables.{self.name}.ordering", ordering, commit=True)
-
             preferences = request.user.get_event_preferences(self.event)
+
+            if clicked_ordering := request.GET.getlist(self.prefixed_order_by_field):
+                # Get current ordering from preferences
+                current_ordering = preferences.get(f"tables.{self.name}.ordering") or []
+
+                # The clicked column is the first (and usually only) item from the query parameter
+                clicked_column = clicked_ordering[0] if clicked_ordering else None
+
+                if clicked_column:
+                    # Get the field name without the direction prefix
+                    clicked_field = clicked_column.lstrip("-")
+
+                    # Remove this field from all positions in current ordering
+                    new_ordering = [
+                        order for order in current_ordering
+                        if order.lstrip("-") != clicked_field
+                    ]
+
+                    # Add the clicked column at the beginning (primary sort)
+                    new_ordering.insert(0, clicked_column)
+
+                    # Save the updated ordering
+                    preferences.set(f"tables.{self.name}.ordering", new_ordering, commit=True)
+                else:
+                    # No valid clicked column, just save as-is
+                    preferences.set(f"tables.{self.name}.ordering", clicked_ordering, commit=True)
+
             columns = preferences.get(f"tables.{self.name}.columns")
             ordering = preferences.get(f"tables.{self.name}.ordering")
             page_size = preferences.get(f"tables.{self.name}.page_size")
@@ -199,7 +222,25 @@ class PretalxTable(tables.Table):
         self._set_columns(columns)
 
         if ordering is not None:
-            self.order_by = ordering
+            # Filter out invalid columns from ordering
+            valid_ordering = []
+            for order_field in ordering:
+                # Remove the minus sign to get the actual field name
+                field_name = order_field.lstrip("-")
+                # Check if the column exists and is orderable
+                if field_name in self.columns and self.columns[field_name].orderable:
+                    valid_ordering.append(order_field)
+
+            # If the ordering changed (invalid columns were removed), update preferences
+            if valid_ordering != ordering and request.user.is_authenticated and self.event:
+                preferences = request.user.get_event_preferences(self.event)
+                if valid_ordering:
+                    preferences.set(f"tables.{self.name}.ordering", valid_ordering, commit=True)
+                else:
+                    preferences.clear(f"tables.{self.name}.ordering", commit=True)
+
+            if valid_ordering:
+                self.order_by = valid_ordering
 
         return page_size
 
