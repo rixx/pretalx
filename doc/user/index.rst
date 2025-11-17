@@ -20,6 +20,8 @@ updating it in the coming months.
 
    sessions
    review
+   schedule
+   schedule/widget
    event/widget
    markdown
    faq
