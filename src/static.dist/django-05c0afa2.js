@@ -1,0 +1,1 @@
+const e={Title:"제목",Track:"트랙",Duration:"기간",Delete:"삭제",Save:"저장",minutes:"분",Speakers:"스피커",Warnings:"경고",Room:"방","Pending proposal state":"보류 중인 제안 상태","Expanded View":"","Condensed View":"","Unscheduled sessions":"",Availabilities:"",Unschedule:"","Copy to other rooms":""};export{e as default};

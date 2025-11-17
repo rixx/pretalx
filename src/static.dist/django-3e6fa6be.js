@@ -1,0 +1,1 @@
+const e={Title:"Tytuł",Track:"Ścieżka",Duration:"Czas trwania",Delete:"Usuń",Save:"Zapisz",minutes:"minuty",Speakers:"Prelegenci",Warnings:"Ostrzeżenia",Room:"Sala","Pending proposal state":"Oczekujące statusy zgłoszeń","Expanded View":"","Condensed View":"","Unscheduled sessions":"",Availabilities:"",Unschedule:"","Copy to other rooms":""};export{e as default};

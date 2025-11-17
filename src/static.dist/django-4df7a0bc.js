@@ -1,0 +1,1 @@
+const e={Title:"Titolo",Track:"Tema",Duration:"Durata",Delete:"Cancella",Save:"Salva",minutes:"Minuti",Speakers:"Relatori",Warnings:"Avvisi",Room:"Aula","Pending proposal state":"stato in sospeso della proposta","Expanded View":"","Condensed View":"","Unscheduled sessions":"",Availabilities:"",Unschedule:"","Copy to other rooms":""};export{e as default};

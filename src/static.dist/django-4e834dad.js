@@ -1,0 +1,1 @@
+const e={Title:"",Track:"",Duration:"",Delete:"",Save:"",minutes:"минуты",Speakers:"",Warnings:"",Room:"","Pending proposal state":"","Expanded View":"","Condensed View":"","Unscheduled sessions":"",Availabilities:"",Unschedule:"","Copy to other rooms":"","Filter sessions":"","New break":"","Drag the box to the schedule to create a new break":""};export{e as default};

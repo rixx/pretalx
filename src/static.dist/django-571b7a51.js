@@ -1,0 +1,1 @@
+const e={Title:"標題",Track:"議程軌",Duration:"時間長度",Delete:"刪除",Save:"儲存",minutes:"分鐘",Speakers:"講者",Warnings:"警告",Room:"會議室","Pending proposal state":"待處理的投稿狀態","Expanded View":"","Condensed View":"","Unscheduled sessions":"",Availabilities:"",Unschedule:"","Copy to other rooms":""};export{e as default};
