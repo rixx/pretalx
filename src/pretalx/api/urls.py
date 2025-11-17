@@ -9,6 +9,7 @@ from pretalx.api.views import (
     access_code,
     event,
     mail,
+    metadata,
     question,
     review,
     room,
@@ -75,6 +76,7 @@ organiser_router.register("teams", team.TeamViewSet, basename="team")
 
 app_name = "api"
 urlpatterns = [
+    path("", metadata.MetadataView.as_view(), name="metadata"),
     path("", include(default_router.urls)),
     # We redirect the old pre-filtered /talks/ endpoint to  /submissions/
     path(
