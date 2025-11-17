@@ -85,6 +85,66 @@ const updatePasswordStrength = (passwordField) => {
     matchPasswords(passwordField)
 }
 
+const togglePasswordVisibility = (button) => {
+    const wrapper = button.closest(".password-toggle-wrapper")
+    const input = wrapper.querySelector("input[type='password'], input[type='text']")
+    const icon = button.querySelector("i")
+    const showLabel = button.dataset.showLabel
+    const hideLabel = button.dataset.hideLabel
+
+    if (input.type === "password") {
+        input.type = "text"
+        icon.classList.remove("fa-eye")
+        icon.classList.add("fa-eye-slash")
+        button.setAttribute("aria-label", hideLabel)
+    } else {
+        input.type = "password"
+        icon.classList.remove("fa-eye-slash")
+        icon.classList.add("fa-eye")
+        button.setAttribute("aria-label", showLabel)
+    }
+}
+
+const wrapPasswordInputs = () => {
+    document
+        .querySelectorAll("input[type='password']")
+        .forEach((input) => {
+            if (input.closest(".password-toggle-wrapper")) {
+                return
+            }
+
+            const wrapper = document.createElement("div")
+            wrapper.className = "password-toggle-wrapper"
+
+            const button = document.createElement("button")
+            button.type = "button"
+            button.className = "password-toggle-btn"
+            button.setAttribute("aria-label", "Show password")
+            button.setAttribute("data-show-label", "Show password")
+            button.setAttribute("data-hide-label", "Hide password")
+
+            const icon = document.createElement("i")
+            icon.className = "fa fa-eye"
+            icon.setAttribute("aria-hidden", "true")
+
+            button.appendChild(icon)
+
+            input.parentNode.insertBefore(wrapper, input)
+            wrapper.appendChild(input)
+            wrapper.appendChild(button)
+        })
+}
+
+const setupPasswordToggle = () => {
+    wrapPasswordInputs()
+
+    document
+        .querySelectorAll(".password-toggle-btn")
+        .forEach((button) => {
+            button.addEventListener("click", () => togglePasswordVisibility(button))
+        })
+}
+
 const setupPasswordStrength = () => {
     document.querySelectorAll(".password_strength_info").forEach((element) => {
         element.classList.add("d-none")
@@ -115,6 +175,8 @@ const setupPasswordStrength = () => {
                 timer = setTimeout(() => matchPasswords(passwordField), 400)
             })
         })
+
+    setupPasswordToggle()
 }
 
 onReady(setupPasswordStrength)

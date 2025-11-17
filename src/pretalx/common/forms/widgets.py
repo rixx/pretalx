@@ -25,6 +25,8 @@ class PasswordStrengthInput(forms.PasswordInput):
         message = _(
             'This password would take <em class="password_strength_time"></em> to crack.'
         )
+        show_password = _("Show password")
+        hide_password = _("Hide password")
         markup = f"""
         <div class="password-progress">
             <div class="password-progress-bar progress">
@@ -45,7 +47,17 @@ class PasswordStrengthInput(forms.PasswordInput):
 
         self.attrs = add_attribute(self.attrs, "class", "password_strength")
         self.attrs["autocomplete"] = "new-password"
-        return mark_safe(super().render(name, value, self.attrs) + markup)
+        password_input = super().render(name, value, self.attrs)
+
+        wrapped_input = f"""
+        <div class="password-toggle-wrapper">
+            {password_input}
+            <button type="button" class="password-toggle-btn" aria-label="{show_password}" data-show-label="{show_password}" data-hide-label="{hide_password}">
+                <i class="fa fa-eye" aria-hidden="true"></i>
+            </button>
+        </div>
+        """
+        return mark_safe(wrapped_input + markup)
 
     class Media:
         js = [
@@ -63,7 +75,9 @@ class PasswordConfirmationInput(forms.PasswordInput):
     def render(self, name, value, attrs=None, renderer=None):
         self.attrs["data-confirm-with"] = str(self.confirm_with)
         warning = _("Warning")
-        content = _("Your passwords don’t match.")
+        content = _("Your passwords don't match.")
+        show_password = _("Show password")
+        hide_password = _("Hide password")
 
         markup = f"""
         <div class="d-none password_strength_info">
@@ -75,7 +89,17 @@ class PasswordConfirmationInput(forms.PasswordInput):
         """
 
         self.attrs = add_attribute(self.attrs, "class", "password_confirmation")
-        return mark_safe(super().render(name, value, self.attrs) + markup)
+        password_input = super().render(name, value, self.attrs)
+
+        wrapped_input = f"""
+        <div class="password-toggle-wrapper">
+            {password_input}
+            <button type="button" class="password-toggle-btn" aria-label="{show_password}" data-show-label="{show_password}" data-hide-label="{hide_password}">
+                <i class="fa fa-eye" aria-hidden="true"></i>
+            </button>
+        </div>
+        """
+        return mark_safe(wrapped_input + markup)
 
 
 class ClearableBasenameFileInput(forms.ClearableFileInput):
