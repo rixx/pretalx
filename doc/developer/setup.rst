@@ -22,11 +22,7 @@ Please make sure you have the following dependencies installed:
 +==================================+==================+
 | Python 3.10(!) or newer          |                  |
 +----------------------------------+------------------+
-| pip for Python 3                 | ``python3-pip``  |
-+----------------------------------+------------------+
 | ``python-dev`` for Python 3      | ``python3-dev``  |
-+----------------------------------+------------------+
-| ``python-venv``, if not included | ``python3-venv`` |
 +----------------------------------+------------------+
 | libffi                           | ``libffi-dev``   |
 +----------------------------------+------------------+
@@ -38,26 +34,23 @@ Please make sure you have the following dependencies installed:
 Some Python dependencies might also need a compiler during installation, the Debian package
 ``build-essential`` or something similar should suffice.
 
+Additionally, you'll need to install ``uv``, a fast Python package installer and resolver.
+You can install it via::
+
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+
+Or use your system's package manager if available. See the `uv installation guide`_ for more options.
+
 
 Local Python environment
 ------------------------
 
 Please execute ``python -V`` or ``python3 -V`` to make sure you have Python 3.10
-(or newer) installed. Also make sure you have pip for Python 3 installed, by
-running ``pip3 -V``. Then use Python’s internal tools to create a virtual
-environment and activate it for your current session::
+(or newer) installed.
 
-    python3 -m venv env
-    source env/bin/activate
-
-You should now see a (env) prepended to your shell prompt. **You have to do
-this in every shell you use to work with pretalx** (or configure your shell to
-do so automatically).
-
-If you are working on Ubuntu or Debian, we strongly recommend upgrading your pip and setuptools
-installation inside the virtual environment, otherwise some of the dependencies might fail::
-
-    (env)$ pip install -U pip setuptools wheel
+With ``uv``, you don't need to manually create or activate virtual environments –
+``uv`` will automatically manage them for you. This simplifies the development
+workflow significantly.
 
 
 Get a copy of the source code
@@ -73,22 +66,22 @@ Working with the code
 
 First up, install all the main application dependencies::
 
-    (env)$ pip3 install --upgrade-strategy eager -Ue ".[dev]"
+    $ uv sync --all-extras
 
 Next, you will have to copy the static files from the source folder to the
 STATIC_ROOT directory, and create the local database::
 
-    (env)$ cd src
-    (env)$ python manage.py collectstatic --noinput
-    (env)$ python manage.py migrate
+    $ cd src
+    $ uv run python manage.py collectstatic --noinput
+    $ uv run python manage.py migrate
 
 To be able to log in, you should also create an admin user, organiser and team by running::
 
-    (env)$ python manage.py init
+    $ uv run python manage.py init
 
 Additionally, if you want to get started with an event right away, run the ``create_test_event`` command::
 
-    (env)$ python manage.py create_test_event
+    $ uv run python manage.py create_test_event
 
 This command will create a test event for you, with a set of test submissions,
 and speakers, and the like.  With the ``--stage`` flag, you can determine which
@@ -101,7 +94,7 @@ the default value.
 If you want to see pretalx in a different language than English, you have to compile our language
 files::
 
-    (env)$ python manage.py compilemessages
+    $ uv run python manage.py compilemessages
 
 If you need to test more complicated features, you should probably look into the
 :doc:`setup</administrator/installation>` documentation to find the bits and pieces you
@@ -111,22 +104,22 @@ Run the development server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 To run the local development server, execute::
 
-    (env)$ python manage.py runserver
+    $ uv run python manage.py runserver
 
 Now point your browser to http://127.0.0.1:8000/orga/ – You should be able to log in and use
 all sites except those that use big custom JavaScript components, like the schedule editor.
 In order to use those, you have two options – in any case, you will need to have ``node`` and
 ``npm`` installed on your system.
 
-If you just need to use the JavaScript component, but don’t need to change it,
+If you just need to use the JavaScript component, but don't need to change it,
 compile the JavaScript files::
 
-    (env)$ python manage.py rebuild --npm-install
+    $ uv run python manage.py rebuild --npm-install
 
 If you want to change the JavaScript code, you can run the following command, which combines
 the Python and the JavaScript development servers::
 
-    (env)$ python manage.py devserver
+    $ uv run python manage.py devserver
 
 .. _`checksandtests`:
 
@@ -134,21 +127,21 @@ Code checks and unit tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 Before you check in your code into git, always run the static linters and style checkers::
 
-    (env)$ black .
-    (env)$ isort .
-    (env)$ flake8 .
-    (env)$ find -name "*.html" | xargs djhtml -i
+    $ uv run black .
+    $ uv run isort .
+    $ uv run flake8 .
+    $ find -name "*.html" | xargs uv run djhtml -i
 
-Once you’re done with those, run the tests::
+Once you're done with those, run the tests::
 
-    (env)$ python -m pytest tests/
+    $ uv run pytest tests/
 
 Pytest, our test framework, has a lot of useful options, like ``--lf`` to repeat only failing
 tests, ``-k something`` to run only tests called ``*something*``, and ``-x`` to stop on the
 first breaking test.
 
 .. note:: If you have more than one CPU core and want to speed up the test suite, you can run
-          ``python -m pytest -n NUM`` with ``NUM`` being the number of threads you want to use.
+          ``uv run pytest -n NUM`` with ``NUM`` being the number of threads you want to use.
 
 If you edit a stylesheet ``.scss`` file, please run ``sass-convert -i path/to/file.scss``
 afterwards to format that file.
@@ -174,20 +167,20 @@ Working with translations
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 If you want to translate new strings that are not yet known to the translation system, you will
 first include them in the ``.po`` files. As we share translations between both the JavaScript
-frontend and the Python backend, you’ll need to install the frontend dependencies first::
+frontend and the Python backend, you'll need to install the frontend dependencies first::
 
-    (env)$ cd src/pretalx/frontend/schedule-editor
-    (env)$ npm ci
+    $ cd src/pretalx/frontend/schedule-editor
+    $ npm ci
 
 Then, use the following command to scan the source code for strings we want to
 translate and update the ``*.po`` files accordingly::
 
-    (env)$ python manage.py makemessages --keep-pot --all
+    $ uv run python manage.py makemessages --keep-pot --all
 
 To actually see pretalx in your language, you have to compile the ``*.po`` files to their optimised
 binary ``*.mo`` counterparts::
 
-    (env)$ python manage.py compilemessages
+    $ uv run python manage.py compilemessages
 
 pretalx by default supports events in English, German, or French, or all three. To translate
 pretalx to a new language, add the language code and natural name to the ``LANGUAGES`` variable in
@@ -198,23 +191,25 @@ them in the future, we can talk about merging them into core.
 Working with the documentation
 ------------------------------
 
-To build the documentation, you will have to install the documentation dependencies. Go to the root
-directory of your git repository, and then run::
+To build the documentation, the documentation dependencies should already be installed if you ran
+``uv sync --all-extras`` earlier. If not, you can install them by running::
 
-    (env)$ pip install --upgrade-strategy eager -Ue ".[devdocs]"
+    $ uv sync --extra devdocs
 
 Then, go to the ``doc`` directory and run ``make html`` to build the documentation::
 
-    (env)$ cd doc
-    (env)$ make html
+    $ cd doc
+    $ uv run make html
 
 You will now find the generated documentation in the ``doc/_build/html/`` subdirectory.
 If you find yourself working with the documentation more than a little, give the ``autobuild``
 functionality a try::
 
-    (env)$ sphinx-autobuild . _build/html --port 8001
+    $ uv run sphinx-autobuild . _build/html --port 8001
 
-Then, go to http://localhost:8081 for a version of the documentation that
+Then, go to http://localhost:8001 for a version of the documentation that
 automatically re-builds when you save a changed source file.
 Please note that changes in the static files (stylesheets and JavaScript) will only be reflected
 after a restart.
+
+.. _uv installation guide: https://docs.astral.sh/uv/getting-started/installation/

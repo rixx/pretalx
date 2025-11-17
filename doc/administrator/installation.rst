@@ -90,8 +90,14 @@ flavours – on Ubuntu-like systems, you will need packages like:
 - ``build-essential``
 - ``libssl-dev``
 - ``python3-dev``
-- ``python3-venv``
 - ``gettext``
+
+Additionally, you'll need to install ``uv``, a fast Python package installer and resolver.
+You can install it via::
+
+    # curl -LsSf https://astral.sh/uv/install.sh | sh
+
+Or use your system's package manager if available. See the `uv installation guide`_ for more options.
 
 
 Step 4: Configuration
@@ -121,49 +127,37 @@ Step 5: Installation
 Now we will install pretalx itself – make sure to run the following steps
 as the ``pretalx`` user.
 
-Before we actually install pretix, we will create a virtual environment to
-isolate the python packages from your global Python installation. You only have
-to run the following command once, but when your Python version changes (e.g.
-because you upgraded from Python 3.13 to 3.14), you will need to remove the old
-``venv`` directory and create it again the same way::
+We'll use ``uv`` to install pretalx and its dependencies. First, navigate to the
+pretalx directory and install pretalx with the appropriate extras::
 
-    $ python3 -m venv /var/pretalx/venv
+    $ cd /var/pretalx
 
-Now, activate the virtual environment – you’ll have to run this command once
-per session whenever you’re interacting with ``python``, ``pip`` or
-``pretalx``::
-
-    $ source /var/pretalx/venv/bin/activate
-
-Now, upgrade your pip and then install the required Python packages::
-
-    (venv)$ python -m pip install -U pip setuptools wheel gunicorn
-
-+-----------------+---------------------------------------------------------------------------+
-| Database        | Command                                                                   |
-+=================+===========================================================================+
-| SQLite          | ``python -m pip install --upgrade-strategy eager -U pretalx``             |
-+-----------------+---------------------------------------------------------------------------+
-| PostgreSQL      | ``python -m pip install --upgrade-strategy eager -U "pretalx[postgres]"`` |
-+-----------------+---------------------------------------------------------------------------+
++-----------------+-------------------------------------------------------+
+| Database        | Command                                               |
++=================+=======================================================+
+| SQLite          | ``uv pip install --system pretalx gunicorn``          |
++-----------------+-------------------------------------------------------+
+| PostgreSQL      | ``uv pip install --system pretalx[postgres] gunicorn``|
++-----------------+-------------------------------------------------------+
 
 If you intend to run pretalx with asynchronous task runners or with redis as
-cache server, you can add ``[redis]`` to the installation command, which will
-pull in the appropriate dependencies. Please note that you should also use
-``pretalx[redis]`` when you upgrade pretalx in this case.
+cache server, you can add ``redis`` to the extras list (e.g.,
+``pretalx[postgres,redis]``), which will pull in the appropriate dependencies.
+Please note that you should also use ``pretalx[redis]`` when you upgrade
+pretalx in this case.
 
 Next, check that your configuration is ready for production::
 
-    (venv)$ python -m pretalx check --deploy
+    $ uv run pretalx check --deploy
 
 Now compile static files and translation data and create the database structure::
 
-    (venv)$ python -m pretalx migrate
-    (venv)$ python -m pretalx rebuild
+    $ uv run pretalx migrate
+    $ uv run pretalx rebuild
 
 Finally, create a user with administrator rights, an organiser and a team by running::
 
-    (venv)$ python -m pretalx init
+    $ uv run pretalx init
 
 Step 6: Starting pretalx as a service
 -------------------------------------
@@ -182,7 +176,7 @@ adjust the content to fit your system::
     User=pretalx
     Group=pretalx
     WorkingDirectory=/var/pretalx
-    ExecStart=/var/pretalx/venv/bin/gunicorn pretalx.wsgi \
+    ExecStart=/home/pretalx/.local/bin/uv run gunicorn pretalx.wsgi \
                           --name pretalx --workers 4 \
                           --max-requests 1200  --max-requests-jitter 50 \
                           --log-level=info --bind=127.0.0.1:8345
@@ -196,7 +190,7 @@ tasks (like sending many emails) to be performed asynchronously in the
 background. We strongly recommend running pretalx with Celery workers, as some
 things, like cleaning up unused files, are otherwise not going to work.
 
-To run Celery workers, you’ll need a second service
+To run Celery workers, you'll need a second service
 ``/etc/systemd/system/pretalx-worker.service`` with the following content::
 
     [Unit]
@@ -207,7 +201,7 @@ To run Celery workers, you’ll need a second service
     User=pretalx
     Group=pretalx
     WorkingDirectory=/var/pretalx
-    ExecStart=/var/pretalx/venv/bin/celery -A pretalx.celery_app worker -l info
+    ExecStart=/home/pretalx/.local/bin/uv run celery -A pretalx.celery_app worker -l info
     Restart=on-failure
 
     [Install]
@@ -229,17 +223,14 @@ There are a couple of things in pretalx that should be run periodically. It
 does not matter how you run them, so you can go with your choice of periodic
 tasks, be they systemd timers, cron, or something else entirely.
 
-In the same environment as you ran the previous pretalx commands (e.g. the
-``pretalx`` user, using either the executable paths in the
-``/var/pretalx/venv`` directory, or running ``/var/pretalx/venv/bin/activate``
-first), you should run
+As the ``pretalx`` user, you should run:
 
-- ``python -m pretalx runperiodic`` somewhere every five minutes and once per hour.
-- ``python -m pretalx clearsessions`` about once a month.
+- ``uv run pretalx runperiodic`` somewhere every five minutes and once per hour.
+- ``uv run pretalx clearsessions`` about once a month.
 
 You could for example configure the ``pretalx`` user cron like this::
 
-  */10 * * * * /var/pretalx/venv/bin/python -m pretalx runperiodic
+  */10 * * * * cd /var/pretalx && /home/pretalx/.local/bin/uv run pretalx runperiodic
 
 
 Step 8: Reverse proxy
@@ -291,7 +282,7 @@ Check out :ref:`configure` for details on the available configuration options,
 and read the :ref:`maintenance` documentation!
 
 .. _Ansible role: https://github.com/pretalx/ansible-pretalx
-.. _Let’s Encrypt: https://letsencrypt.org/
+.. _Let's Encrypt: https://letsencrypt.org/
 .. _PostgreSQL: https://www.postgresql.org/docs/
 .. _redis: https://redis.io/docs/latest/
 .. _ufw: https://en.wikipedia.org/wiki/Uncomplicated_Firewall
@@ -300,3 +291,4 @@ and read the :ref:`maintenance` documentation!
 .. _pretalx.com: https://pretalx.com/p/about/
 .. _nodejs: https://github.com/nodesource/distributions/blob/master/README.md
 .. _supported version of nodejs: https://nodejs.org/en/about/previous-releases
+.. _uv installation guide: https://docs.astral.sh/uv/getting-started/installation/
