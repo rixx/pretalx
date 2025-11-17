@@ -15,6 +15,7 @@ Legal & Policies
    browser-support
    release-cycle
    gdpr
+   cookies
 ..   privacy
 ..   accessibility
 ..   lifecycle
