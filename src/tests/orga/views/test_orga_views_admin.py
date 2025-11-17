@@ -98,3 +98,41 @@ def test_trigger(client, user):
     client.post("/orga/admin/update/", {"trigger": "on"})
     gs.settings.flush()
     assert gs.settings.update_check_last
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("is_administrator", (True, False))
+def test_test_mail_only_for_admin_user(orga_user, orga_client, is_administrator):
+    orga_user.is_administrator = is_administrator
+    orga_user.save()
+    response = orga_client.post("/orga/admin/test-mail/")
+    assert (response.status_code == 302) is is_administrator  # Redirect after POST for admins
+
+
+@pytest.mark.django_db
+def test_test_mail_no_admins_configured(client, user, settings):
+    user.is_administrator = True
+    user.save()
+    client.login(email="dummy@dummy.dummy", password="dummy")
+
+    # Clear admin emails
+    settings.ADMINS = []
+
+    response = client.post("/orga/admin/test-mail/", follow=True)
+    assert response.status_code == 200
+    assert "No administrator email addresses have been configured" in response.text
+
+
+@pytest.mark.django_db
+def test_test_mail_success(client, user, settings, mailoutbox):
+    user.is_administrator = True
+    user.save()
+    client.login(email="dummy@dummy.dummy", password="dummy")
+
+    # Set admin emails
+    settings.ADMINS = [("Admin", "admin@example.org")]
+
+    response = client.post("/orga/admin/test-mail/", follow=True)
+    assert response.status_code == 200
+    assert "A test email has been queued" in response.text
+    assert "admin@example.org" in response.text

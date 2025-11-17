@@ -6,18 +6,20 @@ import sys
 from django.conf import settings
 from django.contrib import messages
 from django.core import cache
+from django.core.mail import get_connection
 from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import FormView, TemplateView
+from django.views.generic import FormView, TemplateView, View
 from django_context_decorator import context
 from django_scopes import scopes_disabled
 
 from pretalx.celery_app import app
 from pretalx.common.exceptions import UserDeletionError
 from pretalx.common.image import gravatar_csp
+from pretalx.common.mail import mail_send_task
 from pretalx.common.models.settings import GlobalSettings
 from pretalx.common.text.phrases import phrases
 from pretalx.common.update_check import check_result_table, update_check
@@ -160,6 +162,60 @@ class AdminUserView(OrgaCRUDView):
             user.deactivate()
         messages.success(request, _("The user has been deleted."))
         return redirect(self.get_success_url())
+
+
+class TestMailView(PermissionRequired, View):
+    permission_required = "person.administrator_user"
+
+    def post(self, request, *args, **kwargs):
+        if not settings.ADMINS:
+            messages.error(
+                request,
+                _(
+                    "No administrator email addresses have been configured. "
+                    "Please set the PRETALX_LOGGING_EMAIL environment variable "
+                    "or configure the [logging] email setting in your configuration file."
+                ),
+            )
+            return redirect(reverse("orga:admin.dashboard"))
+
+        admin_emails = [admin[1] if isinstance(admin, tuple) else admin for admin in settings.ADMINS]
+
+        subject = _("pretalx test email")
+        body = _(
+            "This is a test email from your pretalx instance to verify that the mail configuration is working correctly.\n\n"
+            "Instance: {site_url}\n"
+            "Mail server: {mail_host}:{mail_port}\n"
+            "From address: {mail_from}"
+        ).format(
+            site_url=settings.SITE_URL,
+            mail_host=settings.EMAIL_HOST,
+            mail_port=settings.EMAIL_PORT,
+            mail_from=settings.MAIL_FROM,
+        )
+
+        try:
+            mail_send_task.apply_async(
+                kwargs={
+                    "to": admin_emails,
+                    "subject": str(subject),
+                    "body": str(body),
+                    "html": None,
+                }
+            )
+            messages.success(
+                request,
+                _(
+                    "A test email has been queued and will be sent to {count} administrator email address(es): {emails}"
+                ).format(count=len(admin_emails), emails=", ".join(admin_emails)),
+            )
+        except Exception as e:
+            messages.error(
+                request,
+                _("Failed to send test email: {error}").format(error=str(e)),
+            )
+
+        return redirect(reverse("orga:admin.dashboard"))
 
 
 def healthcheck(request):
