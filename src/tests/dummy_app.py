@@ -20,3 +20,9 @@ class PluginApp(AppConfig):
         description = "Helps to test plugin related things for pretalx"
         visible = True
         version = "0.0.0"
+        settings_links = [
+            (("Test Settings",), "orga:event.plugins", {}),
+        ]
+        navigation_links = [
+            (("Test", "Navigation"), "orga:event.plugins", {}),
+        ]

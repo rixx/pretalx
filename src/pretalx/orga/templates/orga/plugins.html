@@ -8,6 +8,7 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
 {% load i18n %}
 {% load rich_text %}
 {% load static %}
+{% load plugin_display %}
 
 {% block scripts %}
     <script defer src="{% static "common/js/ui/tabs.js" %}"></script>
@@ -34,11 +35,53 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
                             <div class="card plugin-card">
                                 <div class="card-header">
                                     {{ plugin.name }}
-                                    {% if plugin.module in plugins_active %}
-                                        <button class="btn btn-outline-danger btn-block" name="plugin:{{ plugin.module }}" value="disable">{% translate "Disable" %}</button>
-                                    {% else %}
-                                        <button class="btn btn-success btn-block" name="plugin:{{ plugin.module }}" value="enable">{% translate "Enable" %}</button>
-                                    {% endif %}
+                                    <div class="btn-group" role="group">
+                                        {% if plugin.module in plugins_active %}
+                                            {% with plugin_link=plugin_links|get_dict:plugin.module %}
+                                                {% if plugin_link %}
+                                                    {% with nav_links=plugin_link.navigation %}
+                                                        {% if nav_links %}
+                                                            <div class="btn-group" role="group">
+                                                                {% if nav_links|length == 1 %}
+                                                                    <a href="{{ nav_links.0.url }}" class="btn btn-primary">{% translate "Go to" %}</a>
+                                                                {% else %}
+                                                                    <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                                        {% translate "Go to" %}
+                                                                    </button>
+                                                                    <div class="dropdown-menu">
+                                                                        {% for link in nav_links %}
+                                                                            <a class="dropdown-item" href="{{ link.url }}">{{ link.label }}</a>
+                                                                        {% endfor %}
+                                                                    </div>
+                                                                {% endif %}
+                                                            </div>
+                                                        {% endif %}
+                                                    {% endwith %}
+                                                    {% with settings_links=plugin_link.settings %}
+                                                        {% if settings_links %}
+                                                            <div class="btn-group" role="group">
+                                                                {% if settings_links|length == 1 %}
+                                                                    <a href="{{ settings_links.0.url }}" class="btn btn-info">{% translate "Settings" %}</a>
+                                                                {% else %}
+                                                                    <button type="button" class="btn btn-info dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                                        {% translate "Settings" %}
+                                                                    </button>
+                                                                    <div class="dropdown-menu">
+                                                                        {% for link in settings_links %}
+                                                                            <a class="dropdown-item" href="{{ link.url }}">{{ link.label }}</a>
+                                                                        {% endfor %}
+                                                                    </div>
+                                                                {% endif %}
+                                                            </div>
+                                                        {% endif %}
+                                                    {% endwith %}
+                                                {% endif %}
+                                            {% endwith %}
+                                            <button class="btn btn-outline-danger" name="plugin:{{ plugin.module }}" value="disable">{% translate "Disable" %}</button>
+                                        {% else %}
+                                            <button class="btn btn-success btn-block" name="plugin:{{ plugin.module }}" value="enable">{% translate "Enable" %}</button>
+                                        {% endif %}
+                                    </div>
                                 </div>
                                 <ul class="list-group list-group-flush">
                                     <li class="list-group-item">
@@ -55,7 +98,7 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
                                                 {% endblocktranslate %}
                                             </p>
                                         {% endif %}
-                                        {{ plugin.description|rich_text }}
+                                        {{ plugin.description|rich_text %}
                                     </li>
                                 </ul>
                             </div>

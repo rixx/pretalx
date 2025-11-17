@@ -4,6 +4,7 @@
 from django.contrib import messages
 from django.db import transaction
 from django.shortcuts import redirect
+from django.urls import reverse
 from django.utils.functional import cached_property
 from django.views.generic import TemplateView
 from django_context_decorator import context
@@ -30,6 +31,49 @@ class EventPluginsView(EventPermissionRequired, TemplateView):
     @cached_property
     def plugins_active(self):
         return self.request.event.plugin_list
+
+    def _prepare_links(self, links):
+        """Prepare plugin links for display."""
+        result = []
+        for link_tuple in links:
+            labels, urlname, url_kwargs = link_tuple
+            # labels can be a single string or a tuple of strings
+            if isinstance(labels, str):
+                label = labels
+            else:
+                # Join multiple labels with " > " separator
+                label = " > ".join(str(l) for l in labels)
+
+            # Build the URL with event context
+            try:
+                kwargs = {"event": self.request.event.slug}
+                kwargs.update(url_kwargs)
+                url = reverse(urlname, kwargs=kwargs)
+                result.append({"label": label, "url": url})
+            except Exception:
+                # Skip links that can't be resolved
+                pass
+
+        return result
+
+    @context
+    @cached_property
+    def plugin_links(self):
+        """Prepare settings_links and navigation_links for all active plugins."""
+        links = {}
+        for category, plugins in self.grouped_plugins.items():
+            for plugin in plugins:
+                if plugin.module in self.plugins_active:
+                    plugin_links = {}
+                    if hasattr(plugin, "settings_links"):
+                        plugin_links["settings"] = self._prepare_links(plugin.settings_links)
+                    if hasattr(plugin, "navigation_links"):
+                        plugin_links["navigation"] = self._prepare_links(plugin.navigation_links)
+
+                    if plugin_links:
+                        links[plugin.module] = plugin_links
+
+        return links
 
     def post(self, request, *args, **kwargs):
         with transaction.atomic():

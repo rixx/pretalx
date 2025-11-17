@@ -66,6 +66,10 @@ category           string               A category for your plugin, used to grou
                                         ``EXPORTER``, ``RECORDING``, ``LANGUAGE``, ``OTHER`` (default).
 visible            bool                 Defaults to ``True``. Setting it to ``False`` will hide the plugin
                                         from the plugin list in the event settings.
+settings_links     list                 Optional. List of ``((label, ...), urlname, url_kwargs)`` tuples pointing to
+                                        the plugin's settings pages. Multiple labels will be joined with separators.
+navigation_links   list                 Optional. List of ``((label, ...), urlname, url_kwargs)`` tuples pointing to
+                                        the plugin's main pages. Multiple labels will be joined with separators.
 ================== ==================== ===========================================================
 
 .. highlight:: python
@@ -87,6 +91,12 @@ A working example would be::
             visible = True
             description = _("This plugin allows you to post talks to facebook.")
             category = "INTEGRATION"
+            settings_links = [
+                ((_("Facebook"), _("Settings")), "plugins:pretalx_facebook:settings", {}),
+            ]
+            navigation_links = [
+                ((_("Facebook"), _("Posts")), "plugins:pretalx_facebook:posts", {}),
+            ]
 
 
     default_app_config = "pretalx_facebook.FacebookApp"

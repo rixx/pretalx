@@ -5,6 +5,7 @@ import pytest
 from django_scopes import scope
 
 from pretalx.orga.templatetags.orga_edit_link import orga_edit_link
+from pretalx.orga.templatetags.plugin_display import get_dict
 from pretalx.orga.templatetags.review_score import _review_score_number, review_score
 
 
@@ -54,3 +55,17 @@ def test_template_tag_review_score_numeric(review):
 )
 def test_templatetag_orga_edit_link(url, target, result):
     assert orga_edit_link(url, target) == result
+
+
+@pytest.mark.parametrize(
+    "dictionary,key,expected",
+    (
+        ({"foo": "bar"}, "foo", "bar"),
+        ({"foo": "bar"}, "baz", None),
+        ({}, "foo", None),
+        (None, "foo", None),
+        ({"plugin.module": {"settings": []}}, "plugin.module", {"settings": []}),
+    ),
+)
+def test_templatetag_get_dict(dictionary, key, expected):
+    assert get_dict(dictionary, key) == expected
