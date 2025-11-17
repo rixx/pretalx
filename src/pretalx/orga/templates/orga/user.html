@@ -39,6 +39,7 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
                                 <th>{% translate "Name" %}</th>
                                 <th class="text-center">{% translate "Version" %}</th>
                                 <th>{% translate "Events" %}</th>
+                                <th>{% translate "Capabilities" %}</th>
                                 <th>{% translate "Last used" %}</th>
                                 <th>{% translate "Created" %}</th>
                                 <th>{% translate "Valid until" %}</th>
@@ -68,6 +69,31 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
                                                 <li><a href="{{ event.orga_urls.base }}">{{ event.name }}</a></li>
                                             {% endfor %}
                                         </ul>
+                                    </td>
+                                    <td>
+                                        {% with preset=token.get_permission_preset %}
+                                            {% if preset == "read" %}
+                                                {% translate "Read all endpoints" %}
+                                            {% elif preset == "write" %}
+                                                {% translate "Read and write all endpoints" %}
+                                            {% else %}
+                                                <details>
+                                                    <summary>{% translate "Custom permissions" %}</summary>
+                                                    <ul class="mt-2 mb-0">
+                                                        {% for endpoint, perms in token.endpoints.items %}
+                                                            {% if perms %}
+                                                                <li>
+                                                                    <code>/{{ endpoint }}</code>:
+                                                                    {% for perm in perms %}
+                                                                        <span class="badge badge-secondary">{{ perm }}</span>
+                                                                    {% endfor %}
+                                                                </li>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    </ul>
+                                                </details>
+                                            {% endif %}
+                                        {% endwith %}
                                     </td>
                                     <td>{{ token.last_used|date:"SHORT_DATETIME_FORMAT"|default:"-" }}</td>
                                     <td>{{ token.created|date:"SHORT_DATETIME_FORMAT" }}</td>

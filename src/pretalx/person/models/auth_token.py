@@ -110,7 +110,7 @@ class UserApiToken(PretalxModel):
 
     def update_events(self):
         """Called when a user loses access to a team. Should remove any events the user
-        does not have access anymore from this token’s events."""
+        does not have access anymore from this token's events."""
         user_permitted_events = set(self.user.get_events_with_any_permission())
         token_current_events = set(self.events.all())
 
@@ -121,3 +121,47 @@ class UserApiToken(PretalxModel):
             if not self.events.all():
                 self.expires = now()
                 self.save()
+
+    def get_permission_preset(self):
+        """Returns 'read', 'write', or 'custom' based on the token's endpoint permissions."""
+        if not self.endpoints:
+            return "custom"
+
+        # Check if all endpoints are configured
+        if set(self.endpoints.keys()) != set(ENDPOINTS):
+            return "custom"
+
+        # Check if all endpoints have the same permissions
+        permissions_set = set()
+        for endpoint_perms in self.endpoints.values():
+            permissions_set.add(tuple(sorted(endpoint_perms)))
+
+        # If there's more than one unique permission set, it's custom
+        if len(permissions_set) != 1:
+            return "custom"
+
+        # Get the single permission set
+        perms = permissions_set.pop()
+
+        # Check if it matches a preset
+        if set(perms) == set(READ_PERMISSIONS):
+            return "read"
+        elif set(perms) == set(WRITE_PERMISSIONS):
+            return "write"
+        else:
+            return "custom"
+
+    def get_capabilities_display(self):
+        """Returns a dictionary with display information for token capabilities."""
+        preset = self.get_permission_preset()
+        result = {"preset": preset}
+
+        if preset == "custom":
+            # Group endpoints by their permissions for better display
+            result["custom_permissions"] = {}
+            for endpoint in ENDPOINTS:
+                perms = self.endpoints.get(endpoint, [])
+                if perms:
+                    result["custom_permissions"][endpoint] = perms
+
+        return result
