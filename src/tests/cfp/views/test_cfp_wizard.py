@@ -764,6 +764,66 @@ class TestWizard:
         user = self.assert_user(submission, email="testuser@example.com")
         self.assert_mail(submission, user)
 
+    @pytest.mark.django_db
+    def test_wizard_with_tags(self, event, client, user):
+        """Test that submitters can select public tags when submitting a proposal."""
+        from pretalx.submission.models import Tag
+
+        with scope(event=event):
+            # Create public and private tags
+            public_tag = Tag.objects.create(
+                event=event,
+                tag="Public Tag",
+                is_public=True,
+                color="#ff0000",
+            )
+            private_tag = Tag.objects.create(
+                event=event,
+                tag="Private Tag",
+                is_public=False,
+                color="#00ff00",
+            )
+            submission_type = SubmissionType.objects.filter(event=event).first().pk
+
+            # Configure CfP to allow tags
+            event.cfp.fields["tags"]["visibility"] = "optional"
+            event.cfp.fields["tags"]["min_number"] = None
+            event.cfp.fields["tags"]["max_number"] = None
+            event.cfp.save()
+
+        client.force_login(user)
+        response, current_url = self.perform_init_wizard(client, event=event)
+
+        # Submit the info form with tags
+        submission_data = {
+            "title": "Submission with tags",
+            "content_locale": "en",
+            "description": "Description",
+            "abstract": "Abstract",
+            "notes": "Notes",
+            "slot_count": 1,
+            "submission_type": submission_type,
+            "additional_speaker": "",
+            "tags": [public_tag.pk],  # Only public tag should be selectable
+        }
+        response, current_url = self.get_response_and_url(
+            client, current_url, data=submission_data
+        )
+        assert "/profile/" in current_url
+
+        response, current_url = self.perform_profile_form(
+            client, response, current_url, event=event
+        )
+
+        # Verify submission was created with the tag
+        with scope(event=event):
+            submission = Submission.objects.last()
+            assert submission.title == "Submission with tags"
+            assert submission.tags.count() == 1
+            assert submission.tags.first() == public_tag
+            # Verify private tag was not added
+            assert private_tag not in submission.tags.all()
+
 
 @pytest.mark.django_db
 def test_infoform_set_submission_type(event, other_event):

@@ -220,10 +220,32 @@ class InfoForm(CfPFormMixin, RequestRequire, PublicContent, forms.ModelForm):
         self.fields["tags"] = field
 
     def save(self, *args, **kwargs):
+        from pretalx.submission.models import Tag
+
         for key, value in self.default_values.items():
             setattr(self.instance, key, value)
+
+        # Handle tags separately since it's a ManyToManyField added dynamically
+        # Try cleaned_data first, then fall back to raw data
+        tags = None
+        if hasattr(self, "cleaned_data") and "tags" in self.cleaned_data:
+            tags = self.cleaned_data.get("tags")
+        elif "tags" in self.fields and "tags" in self.data:
+            # Get tag IDs from raw data and convert to Tag objects
+            tag_data = self.data.get("tags", [])
+            # tag_data could be a list (from dict) or a single value
+            if not isinstance(tag_data, (list, tuple)):
+                tag_data = [tag_data] if tag_data else []
+            if tag_data:
+                tags = Tag.objects.filter(pk__in=tag_data, event=self.event, is_public=True)
+
         result = super().save(*args, **kwargs)
-        if "image" in self.cleaned_data:
+
+        # Save tags after the instance is saved (required for M2M fields)
+        if tags is not None:
+            self.instance.tags.set(tags)
+
+        if "image" in getattr(self, "cleaned_data", {}):
             self.instance.process_image("image")
         return result
 
