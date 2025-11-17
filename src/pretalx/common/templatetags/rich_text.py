@@ -165,6 +165,19 @@ md = markdown.Markdown(
     ],
 )
 
+# Markdown instance for email rendering without nl2br extension
+# This prevents single line breaks from being converted to <br> tags
+md_email = markdown.Markdown(
+    extensions=[
+        "markdown.extensions.sane_lists",
+        "markdown.extensions.tables",
+        "markdown.extensions.fenced_code",
+        "markdown.extensions.codehilite",
+        "markdown.extensions.md_in_html",
+        StrikeThroughExtension(),
+    ],
+)
+
 
 def render_markdown(text: str, cleaner=CLEANER) -> str:
     """Process markdown and cleans HTML in a text input."""
@@ -176,8 +189,11 @@ def render_markdown(text: str, cleaner=CLEANER) -> str:
 
 def render_markdown_abslinks(text: str) -> str:
     """Process markdown and cleans HTML in a text input, but use absolute links instead
-    of safelink redirects."""
-    return render_markdown(text, cleaner=ABSLINK_CLEANER)
+    of safelink redirects. Uses md_email instance without nl2br extension."""
+    if not text:
+        return ""
+    body_md = ABSLINK_CLEANER.clean(md_email.reset().convert(str(text)))
+    return mark_safe(body_md)
 
 
 @register.filter

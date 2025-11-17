@@ -6,7 +6,7 @@ from django_scopes import scope
 
 from pretalx.common.templatetags.copyable import copyable
 from pretalx.common.templatetags.html_signal import html_signal
-from pretalx.common.templatetags.rich_text import rich_text
+from pretalx.common.templatetags.rich_text import render_markdown_abslinks, rich_text
 from pretalx.common.templatetags.times import times
 from pretalx.common.templatetags.xmlescape import xmlescape
 
@@ -117,3 +117,21 @@ class MockEncodeDict(dict):
 class FakeRequest:
     def __init__(self, get):
         self.GET = MockEncodeDict(get)
+
+
+def test_email_markdown_no_line_breaks():
+    """Test that email markdown rendering doesn't convert single line breaks to <br> tags."""
+    text = "Line one\nLine two\n\nParagraph two"
+    result = render_markdown_abslinks(text)
+    # Single line breaks should not produce <br> tags in email rendering
+    assert "<br" not in result
+    # Double line breaks should still create separate paragraphs
+    assert result.count("<p>") == 2
+
+
+def test_web_markdown_has_line_breaks():
+    """Test that web markdown rendering does convert single line breaks to <br> tags."""
+    text = "Line one\nLine two"
+    result = rich_text(text)
+    # Web rendering should convert single line breaks to <br> tags
+    assert "<br" in result
