@@ -413,6 +413,73 @@ class TestWizard:
         assert len(djmail.outbox) == 0
 
     @pytest.mark.django_db
+    def test_wizard_multiple_additional_speakers(self, event, client, user):
+        from pretalx.submission.models import SubmissionInvitation
+
+        with scope(event=event):
+            submission_type = SubmissionType.objects.filter(event=event).first().pk
+
+        client.force_login(user)
+        response, current_url = self.perform_init_wizard(client, event=event)
+        response, current_url = self.perform_info_wizard(
+            client,
+            response,
+            current_url,
+            submission_type=submission_type,
+            next_step="profile",
+            event=event,
+            additional_speaker="speaker1@example.com\nspeaker2@example.com, speaker3@example.com",
+        )
+        response, current_url = self.perform_profile_form(
+            client, response, current_url, event=event
+        )
+        submission = self.assert_submission(event)
+
+        # Check that 3 invitations were created
+        with scope(event=event):
+            invitations = SubmissionInvitation.objects.filter(submission=submission)
+            assert invitations.count() == 3
+            emails = set(invitations.values_list("email", flat=True))
+            assert emails == {"speaker1@example.com", "speaker2@example.com", "speaker3@example.com"}
+
+        # Check that invitation emails were sent (plus confirmation to submitter)
+        assert len(djmail.outbox) >= 3
+        # Filter out the submitter's confirmation email
+        invitation_emails = {mail.to[0] for mail in djmail.outbox if mail.to[0] != user.email}
+        assert invitation_emails == {"speaker1@example.com", "speaker2@example.com", "speaker3@example.com"}
+
+    @pytest.mark.django_db
+    def test_wizard_multiple_speakers_exceeds_limit(self, event, client, user):
+        with scope(event=event):
+            submission_type = SubmissionType.objects.filter(event=event).first().pk
+            # Set max_speakers to 2
+            event.cfp.fields["additional_speaker"]["max_speakers"] = 2
+            event.cfp.save()
+
+        client.force_login(user)
+        response, current_url = self.perform_init_wizard(client, event=event)
+
+        # Try to add 2 speakers (which would make 3 total with the submitter)
+        response, current_url = self.get_response_and_url(
+            client,
+            current_url,
+            data={
+                "title": "Test",
+                "content_locale": "en",
+                "description": "Description",
+                "abstract": "Abstract",
+                "notes": "Notes",
+                "slot_count": 1,
+                "submission_type": submission_type,
+                "additional_speaker": "speaker1@example.com\nspeaker2@example.com",
+            }
+        )
+
+        # Should remain on the info page with error
+        assert "/info/" in current_url
+        assert "at most 2 speakers" in response.content.decode()
+
+    @pytest.mark.django_db
     def test_wizard_logged_in_user_only_review_questions(
         self, event, client, user, review_question
     ):

@@ -386,20 +386,31 @@ class InfoStep(GenericFlowStep, FormFlowStep):
             messages.success(
                 self.request,
                 _(
-                    "Congratulations, you’ve submitted your proposal! You can continue to make changes to it "
+                    "Congratulations, you've submitted your proposal! You can continue to make changes to it "
                     "up to the submission deadline, and you will be notified of any changes or questions."
                 ),
             )
 
-            additional_speaker = (
-                form.cleaned_data.get("additional_speaker") or ""
-            ).strip()
-            if additional_speaker:
-                try:
-                    submission.send_invite(to=[additional_speaker], _from=request.user)
-                except SendMailException as exception:
-                    logging.getLogger("").warning(str(exception))
-                    messages.warning(self.request, phrases.cfp.submission_email_fail)
+            additional_speakers = form.cleaned_data.get("additional_speaker", "").strip()
+            if additional_speakers:
+                from pretalx.submission.models import SubmissionInvitation
+
+                # Parse emails (newline-separated)
+                email_list = [email.strip() for email in additional_speakers.split("\n") if email.strip()]
+                for email in email_list:
+                    try:
+                        invitation = SubmissionInvitation.objects.create(
+                            submission=submission, email=email
+                        )
+                        invitation.send()
+                        submission.log_action(
+                            "pretalx.submission.speakers.invite",
+                            person=request.user,
+                            data={"email": email},
+                        )
+                    except SendMailException as exception:
+                        logging.getLogger("").warning(str(exception))
+                        messages.warning(self.request, phrases.cfp.submission_email_fail)
 
         access_code = getattr(request, "access_code", None)
         if access_code != submission.access_code:

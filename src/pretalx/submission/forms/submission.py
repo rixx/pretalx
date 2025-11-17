@@ -6,6 +6,7 @@
 # SPDX-FileContributor: Michael Reichert
 
 from django import forms
+from django.core.exceptions import ValidationError
 from django.db.models import Count, Exists, OuterRef, Q
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
@@ -33,10 +34,11 @@ from pretalx.submission.models import (
 
 
 class InfoForm(CfPFormMixin, RequestRequire, PublicContent, forms.ModelForm):
-    additional_speaker = forms.EmailField(
-        label=_("Additional Speaker"),
+    additional_speaker = forms.CharField(
+        label=_("Additional Speakers"),
+        widget=forms.Textarea(attrs={"rows": 3}),
         help_text=_(
-            "If you have a co-speaker, please add their email address here, and we will invite them to create an account. If you have more than one co-speaker, you can add more speakers after finishing the proposal process."
+            "If you have co-speakers, please add their email addresses here, one per line or separated by commas. We will invite them to create an account."
         ),
         required=False,
     )
@@ -179,6 +181,52 @@ class InfoForm(CfPFormMixin, RequestRequire, PublicContent, forms.ModelForm):
                     "Please contact the organisers if you want to change how often you’re presenting this proposal."
                 )
             )
+
+    def clean_additional_speaker(self):
+        from django.core.validators import validate_email
+
+        emails_raw = self.cleaned_data.get("additional_speaker", "").strip()
+        if not emails_raw:
+            return ""
+
+        # Split by newline or comma, clean up whitespace
+        emails = []
+        for line in emails_raw.replace(",", "\n").split("\n"):
+            email = line.strip()
+            if email:
+                emails.append(email.lower())
+
+        # Validate each email
+        validated_emails = []
+        for email in emails:
+            try:
+                validate_email(email)
+                validated_emails.append(email)
+            except ValidationError:
+                raise ValidationError(
+                    _("'{email}' is not a valid email address.").format(email=email)
+                )
+
+        # Check for duplicates in the input
+        if len(validated_emails) != len(set(validated_emails)):
+            raise ValidationError(_("You have entered duplicate email addresses."))
+
+        # Check max_speakers limit if we have an event
+        if hasattr(self, "event"):
+            max_speakers = self.event.cfp.fields.get("additional_speaker", {}).get("max_speakers")
+            if max_speakers is not None:
+                # Current speaker (submitter) + new speakers
+                total_count = 1 + len(validated_emails)
+                if total_count > max_speakers:
+                    raise ValidationError(
+                        _("You can have at most {max_speakers} speakers per proposal (including yourself). You've entered {count} additional speaker(s).").format(
+                            max_speakers=max_speakers,
+                            count=len(validated_emails)
+                        )
+                    )
+
+        # Return cleaned emails as newline-separated string
+        return "\n".join(validated_emails)
 
     def save(self, *args, **kwargs):
         for key, value in self.default_values.items():
