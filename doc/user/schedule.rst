@@ -286,7 +286,7 @@ When you release a schedule:
 3. A **new empty WIP schedule** is created for your next round of changes
 4. Only **confirmed sessions** become visible to the public – accepted but unconfirmed sessions remain hidden
 5. **Breaks** that are scheduled become visible to the public
-6. If you enabled notifications, speaker emails are generated and placed in your outbox
+6. If you enabled notifications, speaker emails are generated and placed in your drafts folder
 7. The unreleased changes indicator disappears from the sidebar
 
 The public can now see your new schedule at ``/{event}/schedule/``.

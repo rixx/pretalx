@@ -21,6 +21,7 @@ updating it in the coming months.
    sessions
    review
    schedule
+   emails
    schedule/widget
    event/widget
    markdown

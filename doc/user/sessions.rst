@@ -63,13 +63,13 @@ scheduling.
 
 .. note::
     When accepting sessions, notification emails are not sent immediately but are
-    placed in the outbox for review first. You can learn more about managing
+    placed in your drafts folder for review first. You can learn more about managing
     emails in the :ref:`Email Guide <user-guide-emails>`.
 
 The acceptance notification email is based on the acceptance template, which
 organisers can edit before accepting sessions. If you have accepted sessions,
 but would like to change the template after the fact, you can discard the
-generated email from your outbox, and then use the acceptance email template in
+generated email from your drafts folder, and then use the acceptance email template in
 the email composer to send an email to the group of accepted speakers.
 
 Sessions can be scheduled once they are in the "accepted" state (even if they are only in
