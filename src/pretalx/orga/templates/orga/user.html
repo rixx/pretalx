@@ -109,8 +109,15 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
                                     <tr>
                                         <th></th>
                                         {% for option in token_form.fields.endpoint_events.choices %}
-                                            <th class="text-center">{{ option.1 }}</th>
+                                            <th class="text-center">
+                                                {{ option.1 }}<br>
+                                                <input type="checkbox" class="select-all-column" data-permission="{{ option.0 }}" title="{% translate "Select all for this permission" %}">
+                                            </th>
                                         {% endfor %}
+                                        <th class="text-center">
+                                            {% translate "All" %}<br>
+                                            <input type="checkbox" class="select-all-table" title="{% translate "Select all" %}">
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -119,9 +126,12 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
                                             <th class="text-right">{{ field.label }}</th>
                                             {% for option in field.field.choices %}
                                                 <td class="text-center">
-                                                    <input type="checkbox" name="{{ field.name }}" value="{{ option.0 }}" id="id_{{ field.name }}_{{ option.0 }}" {% if option.0 in field.initial %}checked{% endif %}>
+                                                    <input type="checkbox" name="{{ field.name }}" value="{{ option.0 }}" id="id_{{ field.name }}_{{ option.0 }}" {% if option.0 in field.initial %}checked{% endif %} class="permission-checkbox" data-endpoint="{{ name }}" data-permission="{{ option.0 }}">
                                                 </td>
                                             {% endfor %}
+                                            <td class="text-center">
+                                                <input type="checkbox" class="select-all-row" data-endpoint="{{ name }}" title="{% translate "Select all for this endpoint" %}">
+                                            </td>
                                         </tr>
                                     {% endfor %}
                                 </tbody>
