@@ -36,8 +36,12 @@ class ApiPermission(BasePermission):
         event = getattr(request, "event", None)
         if request.auth:
             if event:
-                if event not in request.auth.events.all():
-                    return False
+                if request.auth.events.exists():
+                    if event not in request.auth.events.all():
+                        return False
+                else:
+                    if event not in request.user.get_events_with_any_permission():
+                        return False
                 # Reviewers can only access the API if there is an active review
                 # phase AND no anonymisation is active, as otherwise, we can’t fully
                 # guarantee that we’d accidentally expose speaker names or other

@@ -31,6 +31,10 @@ class AuthTokenForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.user = user
         self.fields["events"].queryset = user.get_events_with_any_permission()
+        self.fields["events"].required = False
+        self.fields["events"].help_text = _(
+            "Select specific events this token can access. Leave empty to grant access to all events you currently have access to."
+        )
 
         self.endpoint_fields = {}
         for endpoint in ENDPOINTS:

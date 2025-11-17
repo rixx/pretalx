@@ -102,7 +102,7 @@ class UserApiToken(PretalxModel):
         return {
             "name": self.name,
             "token": self.token,
-            "events": [e.slug for e in self.events.all()],
+            "events": [e.slug for e in self.events.all()] if self.events.exists() else None,
             "expires": self.expires.isoformat() if self.expires else None,
             "endpoints": self.endpoints,
             "version": self.version,
