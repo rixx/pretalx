@@ -85,6 +85,10 @@ class TalkSlot(PretalxModel):
         to="schedule.Schedule", on_delete=models.PROTECT, related_name="talks"
     )
     is_visible = models.BooleanField(default=False)
+    is_blocker = models.BooleanField(
+        default=False,
+        help_text=_("Blocker sessions are not visible in the public schedule"),
+    )
     start = DateTimeField(
         null=True,
         verbose_name=_("Start"),

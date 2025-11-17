@@ -32,6 +32,7 @@ SPDX-License-Identifier: Apache-2.0
 							i.fa.fa-sort-amount-desc(v-if="unassignedSort === method.name && unassignedSortDirection === -1")
 				.session-list(:class="{'collapse-content': displayMode === 'condensed'}")
 					session.new-break(:session="{title: '+ ' + translations.newBreak}", :isDragged="false", :displayMode="displayMode", @startDragging="startNewBreak", @click="showNewBreakHint", v-tooltip.fixed="{text: newBreakTooltip, show: newBreakTooltip}", @pointerleave="removeNewBreakHint")
+					session.new-blocker(:session="{title: '+ ' + translations.newBlocker, is_blocker: true}", :isDragged="false", :displayMode="displayMode", @startDragging="startNewBlocker", @click="showNewBlockerHint", v-tooltip.fixed="{text: newBlockerTooltip, show: newBlockerTooltip}", @pointerleave="removeNewBlockerHint")
 					session(v-for="un in unscheduled", :session="un", :displayMode="displayMode", @startDragging="startDragging", :isDragged="draggedSession && un.id === draggedSession.id", @click="editorStart(un)")
 			#schedule-wrapper(v-scrollbar.x.y="")
 				.schedule-controls
@@ -143,6 +144,7 @@ export default {
 			unassignedSortDirection: 1,  // asc
 			showUnassignedSortMenu: false,
 			newBreakTooltip: '',
+			newBlockerTooltip: '',
 			displayMode: localStorage.getItem('scheduleDisplayMode') || 'expanded',
 			unassignedPanelPinned: false,
 			getLocalizedString,
@@ -152,6 +154,7 @@ export default {
 			translations: {
 				filterSessions: this.$t('Filter sessions'),
 				newBreak: this.$t('New break'),
+				newBlocker: this.$t('New blocker'),
 			}
 		}
 	},
@@ -497,6 +500,21 @@ export default {
 			}, {})
 			this.startDragging({event, session: {title, duration: "5", uncreated: true}})
 		},
+		showNewBlockerHint () {
+			// Users try to click the "+ New Blocker" box instead of dragging it to the schedule
+			// so we show a hint on-click
+			this.newBlockerTooltip = this.$t('Drag the box to the schedule to create a new blocker')
+		},
+		removeNewBlockerHint () {
+			this.newBlockerTooltip = ''
+		},
+		startNewBlocker({event}) {
+			const title = this.locales.reduce((obj, locale) => {
+				obj[locale] = this.$t("New blocker")
+				return obj
+			}, {})
+			this.startDragging({event, session: {title, duration: "5", uncreated: true, is_blocker: true}})
+		},
 		startDragging ({event, session}) {
 			if (this.availabilities && this.availabilities.talks[session.id] && this.availabilities.talks[session.id].length !== 0) {
 				session.availabilities = this.availabilities.talks[session.id]
@@ -698,6 +716,8 @@ export default {
 					opacity: 0.8
 					background-color: $clr-dividers-light
 		.new-break.c-linear-schedule-session
+			min-height: 48px
+		.new-blocker.c-linear-schedule-session
 			min-height: 48px
 		#unassigned-sort-menu
 			color: $clr-primary-text-light

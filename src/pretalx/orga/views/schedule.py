@@ -294,6 +294,7 @@ def serialize_break(slot):
         "end": slot.end.isoformat() if slot.end else None,
         "duration": slot.duration,
         "updated": slot.updated.isoformat(),
+        "is_blocker": slot.is_blocker,
     }
 
 
@@ -390,6 +391,7 @@ class TalkList(EventPermissionRequired, View):
             description=LazyI18nString(data.get("title")),
             start=start,
             end=end,
+            is_blocker=data.get("is_blocker", False),
         )
         task_update_unreleased_schedule_changes.apply_async(
             kwargs={"event": request.event.slug}
@@ -505,7 +507,9 @@ class TalkUpdate(PermissionRequired, View):
                 talk.description = (
                     new_description if str(new_description) else talk.description
                 )
-            talk.save(update_fields=["start", "end", "room", "description", "updated"])
+                if "is_blocker" in data:
+                    talk.is_blocker = data.get("is_blocker", False)
+            talk.save(update_fields=["start", "end", "room", "description", "is_blocker", "updated"])
             talk.refresh_from_db()
         else:
             talk.start = None

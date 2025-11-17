@@ -383,7 +383,7 @@ def freeze_schedule(
         schedule.talks.all().update(is_visible=False)
         schedule.talks.filter(
             models.Q(submission__state=SubmissionStates.CONFIRMED)
-            | models.Q(submission__isnull=True),
+            | (models.Q(submission__isnull=True) & models.Q(is_blocker=False)),
             start__isnull=False,
         ).update(is_visible=True)
 

@@ -16,7 +16,7 @@ SPDX-License-Identifier: Apache-2.0
 		.pending-line(v-if="session.state && session.state !== 'confirmed' && session.state !== 'accepted'")
 			i.fa.fa-exclamation-circle
 			span {{ $t('Pending proposal state') }}
-		.bottom-info(v-if="!isBreak")
+		.bottom-info(v-if="!isBreak && !isBlocker")
 			.track(v-if="session.track") {{ getLocalizedString(session.track.name) }}
 	.warning.no-print(v-if="warnings?.length")
 		.warning-icon.text-danger
@@ -69,11 +69,15 @@ export default {
 			return this.generateSessionLinkUrl({eventUrl: this.eventUrl, session: this.session})
 		},
 		isBreak () {
-			return !this.session.code
+			return !this.session.code && !this.session.is_blocker
+		},
+		isBlocker () {
+			return !this.session.code && this.session.is_blocker
 		},
 		classes () {
 			let classes = []
-			if (this.isBreak) classes.push('isbreak')
+			if (this.isBlocker) classes.push('isblocker')
+			else if (this.isBreak) classes.push('isbreak')
 			else {
 				classes.push('istalk')
 				if (this.session.state !== "confirmed" && this.session.state !== "accepted") classes.push('pending')
@@ -154,6 +158,22 @@ export default {
 			.title
 				font-size: 20px
 				color: $clr-secondary-text-light
+				align: center
+	&.isblocker
+		background-color: #d4a5a5
+		border-radius: 6px
+		.time-box
+			background-color: #9e4a4a
+			.start
+				color: $clr-primary-text-dark
+			.duration
+				color: $clr-secondary-text-dark
+		.info
+			justify-content: center
+			align-items: center
+			.title
+				font-size: 20px
+				color: #5c2e2e
 				align: center
 	&.istalk
 		.time-box
@@ -281,9 +301,20 @@ export default {
 				padding: 4px 8px
 				.title
 					font-size: 14px
+		&.isblocker
+			min-height: 40px
+			margin: 4px
+			.time-box
+				display: none
+			.info
+				padding: 4px 8px
+				.title
+					font-size: 14px
 @media print
 	.c-linear-schedule-session.isbreak
 		border: 2px solid $clr-grey-300 !important
+	.c-linear-schedule-session.isblocker
+		border: 2px solid #9e4a4a !important
 	.c-linear-schedule-session.istalk .time-box
 		border: 2px solid var(--track-color) !important
 	.c-linear-schedule-session.istalk .info
