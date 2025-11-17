@@ -26,15 +26,18 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version-file: ".github/workflows/python-version.txt"
-          cache: "pip"
+      - name: Enable caching
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
       - name: Install system packages
         run: |
           sudo apt update
           sudo apt install -y enchant-2 hunspell aspell-en
       - name: Install Dependencies
-        run: python -m pip install uv && uv pip install --system -U ".[devdocs]"
+        run: uv sync --extra devdocs
       - name: Spellcheck docs
-        run: make spelling
+        run: uv run make spelling
         working-directory: ./doc
       - name: Put spelling errors into summary file
         run: |
@@ -61,11 +64,14 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version-file: ".github/workflows/python-version.txt"
-          cache: "pip"
+      - name: Enable caching
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
       - name: Install Dependencies
-        run: python -m pip install uv && uv pip install --system -U ".[devdocs]"
+        run: uv sync --extra devdocs
       - name: Linkcheck docs
-        run: make linkcheck
+        run: uv run make linkcheck
         working-directory: ./doc
       - name: Put linkcheck result into summary
         run: |
