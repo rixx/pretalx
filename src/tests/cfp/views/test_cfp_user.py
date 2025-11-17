@@ -676,6 +676,8 @@ def test_persists_changed_locale(multilingual_event, orga_user, orga_client):
 
 @pytest.mark.django_db
 def test_can_invite_speaker(speaker_client, submission):
+    from pretalx.submission.models import SubmissionInvitation
+
     djmail.outbox = []
     response = speaker_client.get(
         submission.urls.invite, follow=True, data={"email": "invalidemail"}
@@ -690,26 +692,132 @@ def test_can_invite_speaker(speaker_client, submission):
     assert response.status_code == 200
     assert len(djmail.outbox) == 1
     assert djmail.outbox[0].to == ["other@speaker.org"]
+    # Check that invitation was created
+    assert SubmissionInvitation.objects.filter(
+        submission=submission, email="other@speaker.org"
+    ).exists()
 
 
 @pytest.mark.django_db
-def test_can_accept_invitation(orga_client, submission):
+def test_cannot_invite_duplicate(speaker_client, submission):
+    from pretalx.submission.models import SubmissionInvitation
+
+    # Create first invitation
+    data = {
+        "speaker": "other@speaker.org",
+        "subject": "Please join!",
+        "text": "C'mon, it will be fun!",
+    }
+    speaker_client.post(submission.urls.invite, follow=True, data=data)
+    assert SubmissionInvitation.objects.filter(
+        submission=submission, email="other@speaker.org"
+    ).count() == 1
+
+    # Try to create duplicate
+    response = speaker_client.post(submission.urls.invite, follow=True, data=data)
+    assert response.status_code == 200
+    assert "already been invited" in response.content.decode()
+    # Should still only have one invitation
+    assert SubmissionInvitation.objects.filter(
+        submission=submission, email="other@speaker.org"
+    ).count() == 1
+
+
+@pytest.mark.django_db
+def test_can_accept_invitation(orga_client, submission, orga_user):
+    from pretalx.submission.models import SubmissionInvitation
+
+    # Create invitation for orga user
+    invitation = SubmissionInvitation.objects.create(
+        submission=submission, email=orga_user.email
+    )
     assert submission.speakers.count() == 1
-    response = orga_client.post(submission.urls.accept_invitation, follow=True)
+
+    # Accept invitation with the token URL
+    url = f"/test/invitation/{submission.code}/{invitation.token}"
+    response = orga_client.post(url, follow=True)
     submission.refresh_from_db()
     assert response.status_code == 200
     assert submission.speakers.count() == 2
 
+    # Check that invitation was deleted
+    assert not SubmissionInvitation.objects.filter(pk=invitation.pk).exists()
+
 
 @pytest.mark.django_db
 def test_wrong_acceptance_link(orga_client, submission):
-    assert submission.speakers.count() == 1
-    response = orga_client.post(
-        submission.urls.accept_invitation + "olololol", follow=True
+    from pretalx.submission.models import SubmissionInvitation
+
+    # Create a valid invitation first
+    invitation = SubmissionInvitation.objects.create(
+        submission=submission, email="someone@example.org"
     )
+    assert submission.speakers.count() == 1
+
+    # Try with wrong token
+    url = f"/test/invitation/{submission.code}/{invitation.token}olololol"
+    response = orga_client.post(url, follow=True)
     submission.refresh_from_db()
     assert response.status_code == 404
     assert submission.speakers.count() == 1
+
+
+@pytest.mark.django_db
+def test_cannot_accept_invitation_with_wrong_email(client, submission, orga_user):
+    from pretalx.submission.models import SubmissionInvitation
+    from pretalx.person.models import User
+
+    # Create invitation for a different email
+    invitation = SubmissionInvitation.objects.create(
+        submission=submission, email="other@example.org"
+    )
+
+    # Login as orga user (different email)
+    client.force_login(orga_user)
+    url = f"/test/invitation/{submission.code}/{invitation.token}"
+    response = client.post(url, follow=True)
+
+    assert response.status_code == 200
+    assert "This invitation was sent to" in response.content.decode()
+    # Speaker count should not change
+    assert submission.speakers.count() == 1
+    # Invitation should still exist
+    assert SubmissionInvitation.objects.filter(pk=invitation.pk).exists()
+
+
+@pytest.mark.django_db
+def test_can_cancel_invitation_as_speaker(speaker_client, submission):
+    from pretalx.submission.models import SubmissionInvitation
+
+    # Create invitation
+    invitation = SubmissionInvitation.objects.create(
+        submission=submission, email="other@speaker.org"
+    )
+    url = f"/test/me/submissions/{submission.code}/invite/{invitation.pk}/cancel"
+    response = speaker_client.get(url, follow=True)
+    assert response.status_code == 200
+
+    # Check that invitation was deleted
+    assert not SubmissionInvitation.objects.filter(pk=invitation.pk).exists()
+
+
+@pytest.mark.django_db
+def test_can_resend_invitation_as_speaker(speaker_client, submission):
+    from pretalx.submission.models import SubmissionInvitation
+
+    djmail.outbox = []
+
+    # Create invitation
+    invitation = SubmissionInvitation.objects.create(
+        submission=submission, email="other@speaker.org"
+    )
+    url = f"/test/me/submissions/{submission.code}/invite/{invitation.pk}/resend"
+    response = speaker_client.get(url, follow=True)
+    assert response.status_code == 200
+
+    # Check that email was sent
+    assert len(djmail.outbox) == 1
+    assert djmail.outbox[0].to == ["other@speaker.org"]
 
 
 @pytest.mark.django_db

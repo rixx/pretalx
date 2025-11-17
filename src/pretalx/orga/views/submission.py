@@ -283,6 +283,33 @@ class SubmissionSpeakersDelete(SubmissionViewMixin, View):
         return redirect(submission.orga_urls.speakers)
 
 
+class SubmissionInvitationCancelView(SubmissionViewMixin, View):
+    permission_required = "submission.update_submission"
+
+    def dispatch(self, request, *args, **kwargs):
+        super().dispatch(request, *args, **kwargs)
+        from pretalx.submission.models import SubmissionInvitation
+
+        invitation = get_object_or_404(
+            SubmissionInvitation,
+            pk=self.kwargs["pk"],
+            submission=self.object,
+        )
+        email = invitation.email
+        invitation.delete()
+        self.object.log_action(
+            "pretalx.submission.speakers.invite.retract",
+            person=self.request.user,
+            orga=True,
+            data={"email": email},
+        )
+        messages.success(
+            request,
+            _("The invitation to {email} has been cancelled.").format(email=email),
+        )
+        return redirect(self.object.orga_urls.speakers)
+
+
 class SubmissionSpeakers(ReviewerSubmissionFilter, SubmissionViewMixin, FormView):
     template_name = "orga/submission/speakers.html"
     permission_required = "person.orga_list_speakerprofile"
@@ -302,6 +329,15 @@ class SubmissionSpeakers(ReviewerSubmissionFilter, SubmissionViewMixin, FormView
             }
             for speaker in submission.speakers.all()
         ]
+
+    @context
+    @cached_property
+    def pending_invitations(self):
+        from pretalx.submission.models import SubmissionInvitation
+
+        return SubmissionInvitation.objects.filter(
+            submission=self.object
+        ).order_by("-created")
 
     def form_valid(self, form):
         if email := form.cleaned_data.get("email"):

@@ -351,6 +351,11 @@ urlpatterns = [
                                 name="submissions.speakers.delete",
                             ),
                             path(
+                                "invitations/<int:pk>/cancel",
+                                submission.SubmissionInvitationCancelView.as_view(),
+                                name="submissions.invitation.cancel",
+                            ),
+                            path(
                                 "reviews/",
                                 review.ReviewSubmission.as_view(),
                                 name="submissions.reviews",

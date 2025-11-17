@@ -20,13 +20,44 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
 
     {% include "cfp/includes/user_submission_header.html" %}
 
+    {% if pending_invitations %}
+        <h3>{% translate "Pending invitations" %}</h3>
+        <table class="table table-sm table-hover">
+            <thead>
+                <tr>
+                    <th>{% translate "Email" %}</th>
+                    <th>{% translate "Sent" %}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invitation in pending_invitations %}
+                    <tr>
+                        <td>{{ invitation.email }}</td>
+                        <td>{{ invitation.created }}</td>
+                        <td class="text-right">
+                            <a href="{% url "cfp:event.user.submission.invite.resend" event=request.event.slug code=submission.code pk=invitation.pk %}"
+                               class="btn btn-sm btn-info"
+                               title="{% translate "Resend invitation" %}">
+                                <i class="fa fa-envelope"></i>
+                            </a>
+                            <a href="{% url "cfp:event.user.submission.invite.cancel" event=request.event.slug code=submission.code pk=invitation.pk %}"
+                               class="btn btn-sm btn-danger"
+                               title="{% translate "Cancel invitation" %}">
+                                <i class="fa fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    <h3>{% translate "Send new invitation" %}</h3>
     <div class="alert alert-info offset-md-3" role="alert"><div>
         {% blocktranslate trimmed %}
-            Invite another speaker to your proposal here. Instead of letting us send an email,
-            (which might get caught by spam filters) you can also give them this link:
+            Invite another speaker to your proposal here by entering their email address below.
         {% endblocktranslate %}
-        <br>
-        {{ submission.urls.accept_invitation.full|copyable }}
     </div></div>
     <form method="post">
         {% csrf_token %}

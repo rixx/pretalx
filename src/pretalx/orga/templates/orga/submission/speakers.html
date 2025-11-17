@@ -36,6 +36,42 @@ SPDX-FileContributor: Florian Mösch
         </form>
     </div>{% endif %}
 
+    {% if pending_invitations %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <h4 class="mb-0">{% translate "Pending invitations" %}</h4>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>{% translate "Email" %}</th>
+                            <th>{% translate "Sent" %}</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for invitation in pending_invitations %}
+                            <tr>
+                                <td>{{ invitation.email }}</td>
+                                <td>{{ invitation.created }}</td>
+                                <td class="text-right">
+                                    {% if can_edit_speakers %}
+                                        <a href="{% url "orga:submissions.invitation.cancel" event=request.event.slug code=submission.code pk=invitation.pk %}"
+                                           class="btn btn-sm btn-danger"
+                                           title="{% translate "Cancel invitation" %}">
+                                            <i class="fa fa-trash"></i> {% translate "Cancel" %}
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+
     {% for speaker in speakers %}
         <div class="card mb-3 speaker-card"><div class="card-body">
             <h3 class="card-title">
