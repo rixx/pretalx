@@ -343,6 +343,21 @@ class QuestionFieldsMixin:
             return field
         if question.variant == QuestionVariant.MULTIPLE:
             choices = question.options.all()
+
+            # Build help text with choice limits
+            choice_help_text = help_text
+            if question.min_choices or question.max_choices:
+                from django.utils.translation import gettext as _
+                if question.min_choices and question.max_choices:
+                    if question.min_choices == question.max_choices:
+                        choice_help_text = f"{choice_help_text} {_('Please select exactly %d options.') % question.min_choices}"
+                    else:
+                        choice_help_text = f"{choice_help_text} {_('Please select between %d and %d options.') % (question.min_choices, question.max_choices)}"
+                elif question.min_choices:
+                    choice_help_text = f"{choice_help_text} {_('Please select at least %d options.') % question.min_choices}"
+                elif question.max_choices:
+                    choice_help_text = f"{choice_help_text} {_('Please select at most %d options.') % question.max_choices}"
+
             field = forms.ModelMultipleChoiceField(
                 queryset=choices,
                 label=question.question,
@@ -358,8 +373,32 @@ class QuestionFieldsMixin:
                     else question.default_answer
                 ),
                 disabled=read_only,
-                help_text=help_text,
+                help_text=choice_help_text,
             )
+
+            # Add validator for min/max choices
+            def validate_choice_count(value):
+                from django.core.exceptions import ValidationError
+                from django.utils.translation import gettext as _
+                count = len(value) if value else 0
+                if question.min_choices and count < question.min_choices:
+                    raise ValidationError(
+                        _("Please select at least %(min)d options (you selected %(count)d).") % {
+                            'min': question.min_choices,
+                            'count': count
+                        }
+                    )
+                if question.max_choices and count > question.max_choices:
+                    raise ValidationError(
+                        _("Please select at most %(max)d options (you selected %(count)d).") % {
+                            'max': question.max_choices,
+                            'count': count
+                        }
+                    )
+
+            if question.min_choices or question.max_choices:
+                field.validators.append(validate_choice_count)
+
             field.original_help_text = original_help_text
             field.widget.attrs["placeholder"] = ""  # XSS
             return field

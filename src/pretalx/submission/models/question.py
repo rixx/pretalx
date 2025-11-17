@@ -298,6 +298,18 @@ class Question(OrderedModel, PretalxModel):
         verbose_name=_("Minimum value"),
     )
     max_datetime = DateTimeField(null=True, blank=True, verbose_name=_("Maximum value"))
+    min_choices = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("Minimum number of choices"),
+        help_text=_("Minimum number of options that must be selected."),
+    )
+    max_choices = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("Maximum number of choices"),
+        help_text=_("Maximum number of options that can be selected."),
+    )
     is_public = models.BooleanField(
         default=False,
         verbose_name=_("Publish answers"),

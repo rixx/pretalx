@@ -92,6 +92,8 @@ class QuestionSerializer(FlexFieldsSerializerMixin, PretalxSerializer):
             "max_date",
             "min_datetime",
             "max_datetime",
+            "min_choices",
+            "max_choices",
             "icon",
         )
         expandable_fields = {
@@ -273,6 +275,22 @@ class AnswerCreateSerializer(AnswerSerializer):
                     raise exceptions.ValidationError(
                         {
                             "options": f"Option {option.pk} does not belong to question {question.pk}."
+                        }
+                    )
+
+            # Validate min/max choices for multiple choice questions
+            if question.variant == QuestionVariant.MULTIPLE:
+                option_count = len(options)
+                if question.min_choices and option_count < question.min_choices:
+                    raise exceptions.ValidationError(
+                        {
+                            "options": f"Please select at least {question.min_choices} options (you selected {option_count})."
+                        }
+                    )
+                if question.max_choices and option_count > question.max_choices:
+                    raise exceptions.ValidationError(
+                        {
+                            "options": f"Please select at most {question.max_choices} options (you selected {option_count})."
                         }
                     )
 

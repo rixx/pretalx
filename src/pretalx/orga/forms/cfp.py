@@ -339,6 +339,8 @@ class QuestionForm(ReadOnlyFlag, PretalxI18nModelForm):
             "max_date",
             "min_datetime",
             "max_datetime",
+            "min_choices",
+            "max_choices",
         ]
         widgets = {
             "deadline": HtmlDateTimeInput,

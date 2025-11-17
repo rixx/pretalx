@@ -40,6 +40,8 @@ def test_question_serializer(answer):
         "max_datetime",
         "min_number",
         "max_number",
+        "min_choices",
+        "max_choices",
         "position",
     }
 
