@@ -169,8 +169,7 @@ with scopes_disabled():
     ),
     delete_invitation=extend_schema(
         summary="Delete Speaker Invitation",
-        request=InvitationIdSerializer,
-        responses={200: SubmissionOrgaSerializer},
+        responses={200: SubmissionOrgaSerializer, 404: OpenApiResponse(description="Invitation not found")},
     ),
 )
 class SubmissionViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelViewSet):
@@ -471,15 +470,13 @@ class SubmissionViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelVie
             ).data
         )
 
-    @action(detail=True, methods=["POST"], url_path="delete-invitation")
-    def delete_invitation(self, request, **kwargs):
+    @action(detail=True, methods=["DELETE"], url_path="invitations/(?P<invitation_id>[0-9]+)")
+    def delete_invitation(self, request, invitation_id=None, **kwargs):
         from pretalx.submission.models import SubmissionInvitation
 
-        serializer = InvitationIdSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
         submission = self.get_object()
         invitation = SubmissionInvitation.objects.filter(
-            pk=serializer.validated_data["id"], submission=submission
+            pk=invitation_id, submission=submission
         ).first()
         if not invitation:
             return Response(

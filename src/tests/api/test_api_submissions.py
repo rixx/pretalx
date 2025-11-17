@@ -1794,12 +1794,10 @@ def test_orga_can_delete_invitation(client, orga_user_write_token, submission):
 
     url = (
         submission.event.api_urls.submissions
-        + f"{submission.code}/delete-invitation/"
+        + f"{submission.code}/invitations/{invitation.pk}/"
     )
-    response = client.post(
+    response = client.delete(
         url,
-        data=json.dumps({"id": invitation.pk}),
-        content_type="application/json",
         headers={"Authorization": f"Token {orga_user_write_token.token}"},
     )
     content = json.loads(response.text)
