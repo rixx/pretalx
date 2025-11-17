@@ -52,6 +52,29 @@ With ``uv``, you don't need to manually create or activate virtual environments 
 ``uv`` will automatically manage them for you. This simplifies the development
 workflow significantly.
 
+Task runner (optional)
+----------------------
+
+We provide a ``justfile`` for common development tasks. `just`_ is a command runner
+similar to ``make``, but with a more intuitive syntax. While not required, it can
+significantly streamline your development workflow.
+
+Install ``just`` via::
+
+    cargo install just
+
+Or use your system's package manager if available (e.g., ``brew install just`` on macOS,
+``apt install just`` on Ubuntu 23.04+).
+
+Once installed, you can see all available commands by running::
+
+    $ just
+
+Common commands include ``just install``, ``just run``, ``just test``, ``just fix``,
+and ``just check``. All the commands shown in this documentation can also be run
+through ``just`` – for example, ``just migrate`` instead of ``cd src && uv run python
+manage.py migrate``.
+
 
 Get a copy of the source code
 -----------------------------
@@ -213,3 +236,4 @@ Please note that changes in the static files (stylesheets and JavaScript) will o
 after a restart.
 
 .. _uv installation guide: https://docs.astral.sh/uv/getting-started/installation/
+.. _just: https://github.com/casey/just

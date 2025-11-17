@@ -20,10 +20,15 @@ pretalx is a conference planning tool built with Django that handles call for pa
 
 ## Development Commands
 
+**Note:** A `justfile` is provided for convenience. If you have [just](https://github.com/casey/just) installed,
+you can use shorter commands like `just install`, `just run`, `just test`, `just fix`, and `just check`.
+See `just --list` for all available commands.
+
 ### Setup
 
 ```bash
 uv sync --all-extras
+# or: just install
 ```
 
 ### Running the Application
