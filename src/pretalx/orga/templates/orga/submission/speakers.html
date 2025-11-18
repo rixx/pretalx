@@ -40,7 +40,7 @@ SPDX-FileContributor: Florian Mösch
         <div class="card mb-3 speaker-card"><div class="card-body">
             <h3 class="card-title">
                 <a href="{% url "orga:speakers.view" event=request.event.slug code=speaker.user.code %}">
-                    {{ speaker.user.get_display_name }}
+                    {{ speaker.get_display_name }}
                 </a>
                 {% if speaker.user.avatar and request.event.cfp.request_avatar %}
                     <div class="float-right">
