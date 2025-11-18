@@ -19,10 +19,11 @@ def personal_answer(event, speaker):
             target=QuestionTarget.SPEAKER,
             active=True,
         )
+        speaker_profile = speaker.event_profile(event)
         return Answer.objects.create(
             answer="foo",
             question=question,
-            person=speaker,
+            speaker_profile=speaker_profile,
         )
 
 
@@ -272,8 +273,9 @@ def test_speaker_list_expand_answers(
     personal_answer,
 ):
     with scope(event=event):
+        other_profile = other_speaker.event_profile(event)
         Answer.objects.create(
-            question=personal_answer.question, answer="foobarbar", person=other_speaker
+            question=personal_answer.question, answer="foobarbar", speaker_profile=other_profile
         )
     response = client.get(
         event.api_urls.speakers + "?expand=answers,answers.question",
@@ -303,8 +305,9 @@ def test_speaker_list_expand_block_recursion(
     personal_answer,
 ):
     with scope(event=event):
+        other_profile = other_speaker.event_profile(event)
         Answer.objects.create(
-            question=personal_answer.question, answer="foobarbar", person=other_speaker
+            question=personal_answer.question, answer="foobarbar", speaker_profile=other_profile
         )
     response = client.get(
         event.api_urls.speakers
@@ -591,7 +594,7 @@ def test_speaker_retrieve_answers_scoped_to_event(
             active=True,
         )
         answer2 = Answer.objects.create(
-            answer="Answer 2", question=question2, person=speaker
+            answer="Answer 2", question=question2, speaker_profile=speaker.event_profile(event)
         )
         team = other_event.teams.first()
         team.members.add(orga_user)
