@@ -140,7 +140,7 @@ class SubmissionViewMixin:
         )
 
     def dispatch(self, request, *args, **kwargs):
-        if self.request.user not in self.object.speaker_profiles.all():
+        if not self.object.speaker_profiles.filter(user=self.request.user).exists():
             # User has permission to see permission, but not to see this particular
             # page, so we redirect them to the organiser page
             return redirect(self.object.orga_urls.base)
@@ -151,7 +151,7 @@ class SubmissionViewMixin:
         return get_object_or_404(
             Submission.all_objects.filter(event=self.request.event)
             .exclude(state=SubmissionStates.DELETED)
-            .prefetch_related("answers", "answers__options", "speakers"),
+            .prefetch_related("answers", "answers__options", "speaker_profiles", "speaker_profiles__user"),
             code__iexact=self.kwargs["code"],
         )
 
