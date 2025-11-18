@@ -137,12 +137,12 @@ class DraftRemindersForm(MailTemplateForm):
         )
         mail_count = 0
         for submission in submissions:
-            for user in submission.speaker_profiles.all():
+            for profile in submission.speaker_profiles.all():
                 template.to_mail(
-                    user=user,
+                    user=profile.user,
                     event=self.event,
-                    locale=submission.get_email_locale(user.locale),
-                    context_kwargs={"submission": submission, "user": user},
+                    locale=submission.get_email_locale(profile.user.locale),
+                    context_kwargs={"submission": submission, "user": profile.user},
                     skip_queue=True,
                     commit=False,
                 )
@@ -365,14 +365,14 @@ class WriteSessionMailForm(SubmissionFilterForm, WriteMailBaseForm):
             submissions = (
                 self.filter_queryset(self.event.submissions)
                 .select_related("track", "submission_type", "event")
-                .prefetch_related("speakers")
+                .prefetch_related("speaker_profiles", "speaker_profiles__user")
             )
 
         if added_submissions:
             specific_submissions = (
                 self.event.submissions.filter(code__in=added_submissions)
                 .select_related("track", "submission_type", "event")
-                .prefetch_related("speakers")
+                .prefetch_related("speaker_profiles", "speaker_profiles__user")
             )
             submissions = submissions | specific_submissions
 
@@ -384,7 +384,7 @@ class WriteSessionMailForm(SubmissionFilterForm, WriteMailBaseForm):
                         {
                             "submission": submission,
                             "slot": slot,
-                            "user": speaker,
+                            "user": speaker.user,
                         }
                     )
             else:
@@ -392,7 +392,7 @@ class WriteSessionMailForm(SubmissionFilterForm, WriteMailBaseForm):
                     result.append(
                         {
                             "submission": submission,
-                            "user": speaker,
+                            "user": speaker.user,
                         }
                     )
         if added_speakers:
