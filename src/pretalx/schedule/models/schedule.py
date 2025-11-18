@@ -605,23 +605,23 @@ class Schedule(PretalxModel):
         include_avatar = self.event.cfp.request_avatar
         result["speakers"] = [
             {
-                "code": user.code,
-                "name": user.name,
+                "code": profile.code,
+                "name": profile.user.name,
                 "avatar": (
-                    user.get_avatar_url(event=self.event) if include_avatar else None
+                    profile.user.get_avatar_url(event=self.event) if include_avatar else None
                 ),
                 "avatar_thumbnail_default": (
-                    user.get_avatar_url(event=self.event, thumbnail="default")
+                    profile.user.get_avatar_url(event=self.event, thumbnail="default")
                     if include_avatar
                     else None
                 ),
                 "avatar_thumbnail_tiny": (
-                    user.get_avatar_url(event=self.event, thumbnail="tiny")
+                    profile.user.get_avatar_url(event=self.event, thumbnail="tiny")
                     if include_avatar
                     else None
                 ),
             }
-            for user in speakers
+            for profile in speakers
         ]
         return result
 

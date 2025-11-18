@@ -304,7 +304,7 @@ def serialize_slot(slot, warnings=None):
             "id": slot.pk,
             "title": str(slot.submission.title),
             "speakers": [
-                {"name": speaker.name} for speaker in slot.submission.speaker_profiles.all()
+                {"name": profile.user.name} for profile in slot.submission.speaker_profiles.all()
             ],
             "submission_type": str(slot.submission.submission_type.name),
             "track": (
