@@ -330,7 +330,7 @@ class User(
             if (
                 Submission.all_objects.filter(speaker_profiles__user=self).count()
                 or self.teams.count()
-                or Answer.all_objects.filter(speaker_profile__user=self).count()
+                or Answer.objects.filter(speaker_profile__user=self).count()
             ):
                 raise UserDeletionError(
                     f"Cannot delete user <{self.email}> because they have submissions, answers, or teams. Please deactivate this user instead."
