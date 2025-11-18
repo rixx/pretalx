@@ -23,32 +23,29 @@ pretalx is a conference planning tool built with Django that handles call for pa
 ### Setup
 
 ```bash
-uv sync --all-extras
+just all-install
 ```
 
 ### Running the Application
 ```bash
-uv run python src/manage.py runserver  # Development server
+just run  # Development server
 ```
 
 ### Database Management
 ```bash
-uv run python manage.py migrate                    # Apply migrations
-uv run python manage.py makemigrations             # Create new migrations
-uv run python manage.py shell --unsafe-disable-scopes                      # Django shell with pretalx context
+just run migrate                    # Apply migrations
+just run makemigrations             # Create new migrations
+just run shell --unsafe-disable-scopes                      # Django shell with pretalx context
 ```
 
 ### Testing
 ```bash
-uv run python -m pytest                                      # Run all tests
+just test                                      # Run all tests
 ```
 
 ### Code Quality
 ```bash
-uv run black .                                    # Format Python code
-uv run isort .                                    # Sort imports
-uv run flake8                                     # Lint code
-uv run djhtml .                                   # Format Django templates
+just fmt
 ```
 
 ## Model Relationships
