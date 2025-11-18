@@ -59,7 +59,7 @@ class ScheduleData(BaseExporter):
                 "submission__track",
                 "room",
             )
-            .prefetch_related("submission__speakers")
+            .prefetch_related("submission__speaker_profiles__user")
             .order_by("start")
             .exclude(submission__state="deleted")
         )
@@ -316,7 +316,7 @@ class ICalExporter(BaseExporter):
 
         talks = (
             self.schedule.talks.filter(is_visible=True)
-            .prefetch_related("submission__speakers")
+            .prefetch_related("submission__speaker_profiles__user")
             .select_related("submission", "room", "submission__event")
             .order_by("start")
         )

@@ -59,7 +59,20 @@ def is_agenda_submission_visible(user, submission):
 
 @rules.predicate
 def is_viewable_profile(user, profile):
-    return is_speaker(profile.user, profile.event)
+    """Check if a speaker profile should be viewable.
+
+    A profile is viewable if the speaker has at least one visible submission
+    (either via schedule or via featured).
+    """
+    # Get all submissions for this speaker in this event
+    submissions = profile.event.submissions.filter(speaker_profiles=profile)
+
+    # Check if any submission is visible
+    for submission in submissions:
+        if is_submission_visible_via_schedule(user, submission) or is_submission_visible_via_featured(user, submission):
+            return True
+
+    return False
 
 
 is_speaker_viewable = is_viewable_profile & can_view_schedule

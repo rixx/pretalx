@@ -38,7 +38,7 @@ def get_full_notifications(speaker, event):
         return {"create": [], "update": []}
     return {
         "create": event.current_schedule.scheduled_talks.filter(
-            submission__speakers=speaker
+            submission__speaker_profiles__user=speaker
         ),
         "update": [],
     }

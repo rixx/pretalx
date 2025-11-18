@@ -107,7 +107,7 @@ class Schedule(PretalxModel):
                 "submission__event",
                 "room",
             )
-            .prefetch_related("submission__speakers")
+            .prefetch_related("submission__speaker_profiles__user")
             .filter(
                 room__isnull=False,
                 start__isnull=False,
@@ -273,12 +273,12 @@ class Schedule(PretalxModel):
                 }
             )
 
-        for speaker in talk.submission.speaker_profiles.all():
+        for speaker_profile in talk.submission.speaker_profiles.all():
             if with_speakers:
                 if speaker_profiles:
-                    profile = speaker_profiles.get(speaker)
+                    profile = speaker_profiles.get(speaker_profile)
                 else:
-                    profile = speaker.event_profile(self.event)
+                    profile = speaker_profile
                 if profile and speaker_avails is not None:
                     profile_availabilities = speaker_avails.get(profile.pk)
                 else:
@@ -295,18 +295,18 @@ class Schedule(PretalxModel):
                         {
                             "type": "speaker",
                             "speaker": {
-                                "name": speaker.get_display_name(),
-                                "code": speaker.code,
+                                "name": speaker_profile.user.get_display_name(),
+                                "code": speaker_profile.code,
                             },
                             "message": str(
                                 _("{speaker} is not available at the scheduled time.")
-                            ).format(speaker=speaker.get_display_name()),
+                            ).format(speaker=speaker_profile.user.get_display_name()),
                             "url": url,
                         }
                     )
             overlaps = (
                 TalkSlot.objects.filter(
-                    schedule=self, submission__speakers__in=[speaker]
+                    schedule=self, submission__speaker_profiles__in=[speaker_profile]
                 )
                 .exclude(pk=talk.pk)
                 .filter(
@@ -347,7 +347,7 @@ class Schedule(PretalxModel):
                 "submission__event",
                 "schedule__event",
             )
-            .prefetch_related("submission__speakers")
+            .prefetch_related("submission__speaker_profiles__user")
         )
         if filter_updated:
             talks = talks.filter(updated__gte=filter_updated)
@@ -430,16 +430,18 @@ class Schedule(PretalxModel):
         """
         result = {}
         if self.changes["action"] == "create":
-            from pretalx.person.models import User
+            from pretalx.person.models import SpeakerProfile
 
-            for speaker in User.objects.filter(submissions__slots__schedule=self):
+            for speaker_profile in SpeakerProfile.objects.filter(
+                submissions__slots__schedule=self, event=self.event
+            ):
                 talks = self.talks.filter(
-                    submission__speakers=speaker,
+                    submission__speaker_profiles=speaker_profile,
                     room__isnull=False,
                     start__isnull=False,
                 )
                 if talks:
-                    result[speaker] = {"create": talks, "update": []}
+                    result[speaker_profile.user] = {"create": talks, "update": []}
             return result
 
         if self.changes["count"] == len(self.changes["canceled_talks"]):
@@ -519,7 +521,7 @@ class Schedule(PretalxModel):
             "submission__track",
             "submission__event",
             "submission__submission_type",
-        ).prefetch_related("submission__speakers")
+        ).prefetch_related("submission__speaker_profiles__user")
         talks = talks.order_by("start")
         rooms = set() if not all_rooms else set(self.event.rooms.all())
         tracks = set()
