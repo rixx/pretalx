@@ -287,13 +287,13 @@ class SpeakerFilterForm(forms.Form):
         data = self.cleaned_data
         if data.get("role") == "true":
             queryset = queryset.filter(
-                user__submissions__in=self.event.submissions.filter(
+                submissions__in=self.event.submissions.filter(
                     state__in=SubmissionStates.accepted_states
                 )
             )
         elif data.get("role") == "false":
             queryset = queryset.exclude(
-                user__submissions__in=self.event.submissions.filter(
+                submissions__in=self.event.submissions.filter(
                     state__in=SubmissionStates.accepted_states
                 )
             )
