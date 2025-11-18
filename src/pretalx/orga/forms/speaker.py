@@ -52,7 +52,7 @@ class SpeakerExportForm(ExportForm):
     def questions(self):
         return self.event.questions.filter(
             target="speaker", active=True
-        ).prefetch_related("answers", "answers__person", "options")
+        ).prefetch_related("answers", "answers__speaker_profile", "answers__speaker_profile__user", "options")
 
     @cached_property
     def filename(self):
