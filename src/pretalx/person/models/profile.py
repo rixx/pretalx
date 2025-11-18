@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from pretalx.agenda.rules import can_view_schedule, is_speaker_viewable
 from pretalx.common.models.fields import MarkdownField
 from pretalx.common.models.mixins import PretalxModel
+from pretalx.common.names import build_name
 from pretalx.common.text.path import path_with_hash
 from pretalx.common.urls import EventUrls
 from pretalx.orga.rules import can_view_speaker_names
@@ -79,6 +80,18 @@ class SpeakerProfile(PretalxModel):
     avatar_thumbnail_tiny = models.ImageField(
         null=True, blank=True, upload_to="avatars/"
     )
+    name_parts = models.JSONField(
+        default=dict,
+        verbose_name=_("Name parts"),
+        help_text=_("Structured name components for this speaker at this event."),
+    )
+    name = models.CharField(
+        max_length=120,
+        blank=True,
+        default="",
+        verbose_name=_("Name"),
+        help_text=_("Cached display name built from name_parts."),
+    )
 
     log_prefix = "pretalx.user.profile"
 
@@ -117,8 +130,16 @@ class SpeakerProfile(PretalxModel):
 
     def __str__(self):
         """Help when debugging."""
-        user = self.user.get_display_name() if self.user else None
-        return f"SpeakerProfile(event={self.event.slug}, user={user})"
+        display_name = self.get_display_name()
+        return f"SpeakerProfile(event={self.event.slug}, name={display_name})"
+
+    def get_display_name(self):
+        """Get the display name for this speaker profile."""
+        if self.name:
+            return self.name
+        if self.user:
+            return self.user.name or self.user.email
+        return ""
 
     @cached_property
     def code(self):
@@ -127,11 +148,6 @@ class SpeakerProfile(PretalxModel):
     @cached_property
     def guid(self):
         return self.user.guid
-
-    @cached_property
-    def name(self):
-        """Backwards compatibility property to access user name."""
-        return self.user.name if self.user else None
 
     @cached_property
     def submissions(self):
@@ -172,12 +188,24 @@ class SpeakerProfile(PretalxModel):
         )
 
     def save(self, *args, **kwargs):
-        """Save the profile and sync avatar with User if needed."""
+        """Save the profile and sync avatar/name with User if needed."""
+        # Build cached name from name_parts
+        if self.name_parts:
+            fallback_scheme = "given_family"
+            if self.event_id:
+                fallback_scheme = self.event.display_settings.get(
+                    "name_scheme", "given_family"
+                )
+            self.name = build_name(self.name_parts, fallback_scheme=fallback_scheme)
+        elif self.user and not self.name:
+            # Fallback to user name if no name_parts and no existing name
+            self.name = self.user.name or ""
+
         # If this profile has an avatar but the user doesn't, copy to user
         if self.avatar and self.user and not self.user.avatar:
             # Save the file to the user's avatar field without creating duplicates
             self.user.avatar = self.avatar
-            self.user.save(update_fields=['avatar'])
+            self.user.save(update_fields=["avatar"])
 
         return super().save(*args, **kwargs)
 
@@ -251,8 +279,9 @@ class SpeakerProfile(PretalxModel):
         if self.pk:
             avatar = self.get_avatar()
             data = {
-                "name": self.user.name,
-                "email": self.user.email,
+                "name": self.get_display_name(),
+                "email": self.user.email if self.user else None,
                 "avatar": avatar.name if avatar else None,
+                "name_parts": self.name_parts,
             }
         return super()._get_instance_data() | data

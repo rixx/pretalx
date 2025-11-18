@@ -107,6 +107,7 @@ def default_display_settings():
         "html_export_url": "",
         "meta_noindex": False,
         "texts": {"agenda_session_above": "", "agenda_session_below": ""},
+        "name_scheme": "given_family",  # or family_given, full, title_given_family, etc.
     }
 
 
