@@ -310,14 +310,30 @@ class SubmissionSpeakers(ReviewerSubmissionFilter, SubmissionViewMixin, FormView
         order = request.POST.get("order")
         if not order:
             return super().post(request, *args, **kwargs)
+
+        # Check permission for updating submissions (reordering speakers)
+        if not request.user.has_perm("submission.update_submission", self.object):
+            messages.error(request, _("You do not have permission to reorder speakers."))
+            return redirect(self.object.orga_urls.speakers)
+
         order = order.split(",")
-        for index, pk in enumerate(order):
-            role = get_object_or_404(
-                self.object.speaker_roles,
-                pk=pk,
+        with transaction.atomic():
+            for index, pk in enumerate(order):
+                role = get_object_or_404(
+                    self.object.speaker_roles,
+                    pk=pk,
+                )
+                role.position = index
+                role.save(update_fields=["position"])
+
+            # Log the reordering action
+            self.object.log_action(
+                "pretalx.submission.speakers.reorder",
+                person=request.user,
+                orga=True,
+                data={"order": order},
             )
-            role.position = index
-            role.save(update_fields=["position"])
+
         return redirect(self.object.orga_urls.speakers)
 
     def form_valid(self, form):

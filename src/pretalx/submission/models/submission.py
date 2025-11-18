@@ -1145,13 +1145,33 @@ class Submission(GenerateCode, PretalxModel):
                 kwargs={"event": self.event.slug, "token": speaker.pw_reset_token},
             )
 
+        # Check if speaker was already added to avoid duplicate logging
+        was_already_speaker = self.speakers.filter(pk=speaker.pk).exists()
+
+        # Calculate the next position before adding the speaker
+        if not was_already_speaker:
+            # Get max position from existing roles
+            existing_roles = list(self.speaker_roles.all().order_by("-position"))
+            if existing_roles:
+                next_position = existing_roles[0].position + 1
+            else:
+                next_position = 0
+
         self.speakers.add(speaker)
-        self.log_action(
-            "pretalx.submission.speakers.add",
-            person=user,
-            orga=True,
-            data={"code": speaker.code, "name": speaker.name, "email": speaker.email},
-        )
+
+        if not was_already_speaker:
+            # Set the position for the new speaker to be after all existing speakers
+            role = self.speaker_roles.get(user=speaker)
+            role.position = next_position
+            role.save(update_fields=["position"])
+
+            self.log_action(
+                "pretalx.submission.speakers.add",
+                person=user,
+                orga=True,
+                data={"code": speaker.code, "name": speaker.name, "email": speaker.email},
+            )
+
         context["user"] = speaker
         template = self.event.get_mail_template(
             MailTemplateRoles.EXISTING_SPEAKER_INVITE

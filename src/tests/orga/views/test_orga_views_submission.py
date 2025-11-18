@@ -1057,3 +1057,120 @@ def test_speaker_display_order_respects_position(submission, other_orga_user):
         assert display_names == ", ".join(speaker_names)
         assert speaker_names[0] == second_role.user.get_display_name()
         assert speaker_names[1] == first_role.user.get_display_name()
+
+
+@pytest.mark.django_db
+def test_new_speakers_get_incremental_positions(submission, other_orga_user):
+    with scope(event=submission.event):
+        # First speaker should have position 0
+        first_role = submission.speaker_roles.first()
+        assert first_role.position == 0
+
+        # Add second and third speakers via add_speaker method
+        submission.add_speaker(
+            email="second@example.com",
+            name="Second Speaker",
+            user=submission.speakers.first(),
+        )
+        submission.add_speaker(
+            email="third@example.com",
+            name="Third Speaker",
+            user=submission.speakers.first(),
+        )
+
+        # Check positions are sequential
+        roles = list(submission.speaker_roles.order_by("position"))
+        assert roles[0].position == 0
+        assert roles[1].position == 1
+        assert roles[2].position == 2
+
+
+@pytest.mark.django_db
+def test_reordering_without_permission_fails(review_client, submission, other_orga_user, review_user):
+    with scope(event=submission.event):
+        # Review users can view speaker profiles but cannot update submissions
+        submission.speakers.add(other_orga_user)
+        roles = list(submission.speaker_roles.order_by("position"))
+        first_role_id = roles[0].id
+        second_role_id = roles[1].id
+
+        # Verify review user doesn't have update permission
+        assert not review_user.has_perm("submission.update_submission", submission)
+
+        response = review_client.post(
+            submission.orga_urls.speakers,
+            data={"order": f"{second_role_id},{first_role_id}"},
+            follow=True,
+        )
+
+        # Should redirect without making changes
+        assert response.status_code == 200
+        # Verify order wasn't actually changed
+        roles_after = list(submission.speaker_roles.order_by("position"))
+        assert roles_after[0].id == first_role_id  # Order should be unchanged
+        assert roles_after[1].id == second_role_id
+
+
+@pytest.mark.django_db
+def test_reordering_logs_action(orga_client, submission, other_orga_user):
+    with scope(event=submission.event):
+        submission.speakers.add(other_orga_user)
+        submission.refresh_from_db()
+
+        roles = list(submission.speaker_roles.order_by("position"))
+        first_role_id = roles[0].id
+        second_role_id = roles[1].id
+
+        orga_client.post(
+            submission.orga_urls.speakers,
+            data={"order": f"{second_role_id},{first_role_id}"},
+        )
+
+        # Check that the action was logged
+        from pretalx.common.models import ActivityLog
+        log_entry = ActivityLog.objects.filter(
+            content_type__model="submission",
+            object_id=submission.pk,
+            action_type="pretalx.submission.speakers.reorder",
+        ).first()
+
+        assert log_entry is not None
+        assert log_entry.data["order"] == [str(second_role_id), str(first_role_id)]
+
+
+@pytest.mark.django_db
+def test_reordering_with_invalid_role_id_fails(orga_client, submission, other_orga_user):
+    with scope(event=submission.event):
+        submission.speakers.add(other_orga_user)
+        submission.refresh_from_db()
+
+        roles = list(submission.speaker_roles.order_by("position"))
+        valid_id = roles[0].id
+        invalid_id = 99999
+
+        response = orga_client.post(
+            submission.orga_urls.speakers,
+            data={"order": f"{valid_id},{invalid_id}"},
+        )
+
+        # Should return 404 for invalid role ID
+        assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_adding_same_speaker_twice_does_not_change_position(submission):
+    with scope(event=submission.event):
+        speaker = submission.speakers.first()
+        original_position = submission.speaker_roles.get(user=speaker).position
+
+        # Try to add the same speaker again
+        submission.add_speaker(
+            email=speaker.email,
+            name=speaker.name,
+            user=speaker,
+        )
+
+        # Position should not change
+        role = submission.speaker_roles.get(user=speaker)
+        assert role.position == original_position
+        assert submission.speaker_roles.count() == 1
