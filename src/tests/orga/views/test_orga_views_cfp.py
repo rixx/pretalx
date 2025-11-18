@@ -49,6 +49,40 @@ def test_edit_cfp(orga_client, event):
 
 
 @pytest.mark.django_db
+def test_edit_cfp_with_tags_configuration(orga_client, event):
+    """Test that CfP settings can configure tags with min/max number."""
+    response = orga_client.post(
+        event.cfp.urls.edit_text,
+        {
+            "headline_0": "Test headline",
+            "text_0": "",
+            "deadline": "2000-10-10 20:20",
+            "count_length_in": "chars",
+            "settings-cfp_ask_abstract": "required",
+            "settings-cfp_ask_description": "optional",
+            "settings-cfp_ask_notes": "optional",
+            "settings-cfp_ask_biography": "optional",
+            "settings-cfp_ask_avatar": "optional",
+            "settings-cfp_ask_availabilities": "optional",
+            "settings-cfp_ask_do_not_record": "optional",
+            "settings-cfp_ask_image": "optional",
+            "settings-cfp_ask_track": "optional",
+            "settings-cfp_ask_duration": "optional",
+            "settings-cfp_ask_additional_speaker": "optional",
+            "settings-cfp_ask_tags": "optional",
+            "settings-cfp_tags_min_number": "1",
+            "settings-cfp_tags_max_number": "3",
+        },
+        follow=True,
+    )
+    assert response.status_code == 200
+    event = Event.objects.get(slug=event.slug)
+    assert event.cfp.fields["tags"]["visibility"] == "optional"
+    assert event.cfp.fields["tags"]["min_number"] == 1
+    assert event.cfp.fields["tags"]["max_number"] == 3
+
+
+@pytest.mark.django_db
 def test_edit_cfp_timezones(orga_client, event):
     event = Event.objects.get(slug=event.slug)
     event.timezone = "Europe/Berlin"
