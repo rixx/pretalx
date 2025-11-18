@@ -559,18 +559,20 @@ class SubmissionChangeRequestView(LoggedInEventPageMixin, SubmissionViewMixin, U
     @transaction.atomic
     def form_valid(self, form):
         comment = self.request.POST.get("change_request_comment", "")
+        had_change_request = self.object.has_change_request
 
         old_submission_data = self.object._get_instance_data() or {}
         old_questions_data = self.qform.serialize_answers() or {}
-        new_submission_data = form.cleaned_data
-        new_questions_data = {}
+        new_submission_data = {}
 
         for field in form.fields:
-            if field in form.cleaned_data and hasattr(self.object, field):
+            if field in form.cleaned_data:
                 new_submission_data[field] = form.cleaned_data[field]
 
         if self.qform.is_valid():
             new_questions_data = self.qform.serialize_answers() or {}
+        else:
+            new_questions_data = {}
 
         changes = {}
         for key, value in new_submission_data.items():
@@ -590,12 +592,10 @@ class SubmissionChangeRequestView(LoggedInEventPageMixin, SubmissionViewMixin, U
         self.object.change_request = {
             "changes": changes,
             "comment": comment,
-            "submission_data": new_submission_data,
-            "question_data": new_questions_data,
         }
         self.object.save()
 
-        action = "pretalx.submission.change_request.update" if self.object.has_change_request else "pretalx.submission.change_request.create"
+        action = "pretalx.submission.change_request.update" if had_change_request else "pretalx.submission.change_request.create"
         self.object.log_action(action, person=self.request.user)
 
         messages.success(self.request, _("Your change request has been submitted."))

@@ -1003,3 +1003,92 @@ def test_orga_can_view_submission_history(orga_client, event, submission, orga_u
     response = orga_client.get(submission.orga_urls.history, follow=True)
     assert response.status_code == 200
     assert "History" in response.text or "Activity" in response.text
+
+
+@pytest.mark.django_db
+def test_orga_change_request_view_no_request(orga_client, submission):
+    response = orga_client.get(submission.orga_urls.change_request, follow=True)
+    assert response.status_code == 200
+    assert "does not have any pending change requests" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_orga_change_request_view_with_request(orga_client, submission):
+    submission.change_request = {
+        "changes": {"title": "New Title"},
+        "comment": "Please update the title",
+    }
+    submission.save()
+    
+    response = orga_client.get(submission.orga_urls.change_request, follow=True)
+    assert response.status_code == 200
+    assert "Please update the title" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_orga_accept_change_request(orga_client, submission):
+    old_title = submission.title
+    new_title = "New Title from Change Request"
+    
+    submission.change_request = {
+        "changes": {"title": new_title},
+        "comment": "Please update",
+    }
+    submission.save()
+    
+    response = orga_client.post(
+        submission.orga_urls.change_request,
+        {"action": "accept"},
+        follow=True,
+    )
+    
+    submission.refresh_from_db()
+    assert submission.title == new_title
+    assert not submission.has_change_request
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_orga_reject_change_request(orga_client, submission):
+    old_title = submission.title
+    
+    submission.change_request = {
+        "changes": {"title": "New Title"},
+        "comment": "Please update",
+    }
+    submission.save()
+    
+    response = orga_client.post(
+        submission.orga_urls.change_request,
+        {"action": "reject"},
+        follow=True,
+    )
+    
+    submission.refresh_from_db()
+    assert submission.title == old_title
+    assert not submission.has_change_request
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_submission_list_change_request_filter(orga_client, event, submission):
+    submission.change_request = {"changes": {"title": "New"}, "comment": "Test"}
+    submission.save()
+    
+    response = orga_client.get(
+        event.orga_urls.submissions + "?has_change_request=true",
+        follow=True,
+    )
+    assert response.status_code == 200
+    assert submission.code in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_dashboard_change_request_tile(orga_client, event, submission):
+    submission.change_request = {"changes": {"title": "New"}, "comment": "Test"}
+    submission.save()
+    
+    response = orga_client.get(event.orga_urls.base, follow=True)
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "change request" in content.lower() or "change-request" in content.lower()

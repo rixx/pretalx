@@ -137,6 +137,22 @@ with scopes_disabled():
     confirm=extend_schema(summary="Confirm Submission"),
     cancel=extend_schema(summary="Cancel Submission"),
     make_submitted=extend_schema(summary="Make Submission Submitted"),
+    accept_change_request=extend_schema(
+        summary="Accept Change Request",
+        description="Accepts a pending change request from a speaker and applies the requested changes to the submission. The speaker will not be automatically notified.",
+        responses={
+            200: SubmissionOrgaSerializer,
+            400: OpenApiResponse(description="No change request found or other error."),
+        },
+    ),
+    reject_change_request=extend_schema(
+        summary="Reject Change Request",
+        description="Rejects a pending change request from a speaker without applying any changes. The speaker will not be automatically notified.",
+        responses={
+            200: SubmissionOrgaSerializer,
+            400: OpenApiResponse(description="No change request found or other error."),
+        },
+    ),
     add_speaker=extend_schema(
         summary="Add Speaker to Submission",
         request=AddSpeakerSerializer,
@@ -160,6 +176,8 @@ class SubmissionViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelVie
         "make_submitted": "submission.state_change_submission",
         "add_speaker": "submission.update_submission",
         "remove_speaker": "submission.update_submission",
+        "accept_change_request": "submission.orga_update_submission",
+        "reject_change_request": "submission.orga_update_submission",
     }
     endpoint = "submissions"
 
@@ -362,6 +380,34 @@ class SubmissionViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelVie
         submission.remove_speaker(speaker, user=self.request.user)
         submission.refresh_from_db()
         return Response(SubmissionOrgaSerializer(submission).data)
+
+    @action(detail=True, methods=["POST"], url_path="accept-change-request")
+    def accept_change_request(self, request, **kwargs):
+        submission = self.get_object()
+        if not submission.has_change_request:
+            return Response(
+                {"detail": "No change request found for this submission."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        submission.accept_change_request(person=request.user)
+        submission.refresh_from_db()
+        return Response(
+            self.get_serializer(submission).data, status=status.HTTP_200_OK
+        )
+
+    @action(detail=True, methods=["POST"], url_path="reject-change-request")
+    def reject_change_request(self, request, **kwargs):
+        submission = self.get_object()
+        if not submission.has_change_request:
+            return Response(
+                {"detail": "No change request found for this submission."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        submission.reject_change_request(person=request.user)
+        submission.refresh_from_db()
+        return Response(
+            self.get_serializer(submission).data, status=status.HTTP_200_OK
+        )
 
 
 @extend_schema(

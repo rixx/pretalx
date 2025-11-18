@@ -1662,3 +1662,80 @@ def test_log_endpoint_pagination(client, orga_user_write_token, submission, orga
     if "results" in content:
         assert "count" in content
         assert "next" in content or "previous" in content
+
+
+@pytest.mark.django_db
+def test_api_submission_orga_change_request_field(orga_client, submission, orga_user):
+    with scope(event=submission.event):
+        submission.change_request = {
+            "changes": {"title": "New Title"},
+            "comment": "Please update",
+        }
+        submission.save()
+        
+        response = orga_client.get(submission.urls.api, follow=True)
+        assert response.status_code == 200
+        content = json.loads(response.content.decode())
+        assert "change_request" in content
+        assert content["change_request"]["comment"] == "Please update"
+
+
+@pytest.mark.django_db
+def test_api_accept_change_request(orga_client, submission, orga_user):
+    with scope(event=submission.event):
+        old_title = submission.title
+        new_title = "New Title via Change Request"
+        
+        submission.change_request = {
+            "changes": {"title": new_title},
+            "comment": "Please update the title",
+        }
+        submission.save()
+        
+        url = f"{submission.urls.api}accept-change-request/"
+        response = orga_client.post(url, follow=True)
+        assert response.status_code == 200
+        
+        submission.refresh_from_db()
+        assert submission.title == new_title
+        assert not submission.has_change_request
+
+
+@pytest.mark.django_db
+def test_api_accept_change_request_none(orga_client, submission, orga_user):
+    with scope(event=submission.event):
+        url = f"{submission.urls.api}accept-change-request/"
+        response = orga_client.post(url, follow=True)
+        assert response.status_code == 400
+        content = json.loads(response.content.decode())
+        assert "No change request" in content["detail"]
+
+
+@pytest.mark.django_db
+def test_api_reject_change_request(orga_client, submission, orga_user):
+    with scope(event=submission.event):
+        old_title = submission.title
+        
+        submission.change_request = {
+            "changes": {"title": "New Title"},
+            "comment": "Please update",
+        }
+        submission.save()
+        
+        url = f"{submission.urls.api}reject-change-request/"
+        response = orga_client.post(url, follow=True)
+        assert response.status_code == 200
+        
+        submission.refresh_from_db()
+        assert submission.title == old_title
+        assert not submission.has_change_request
+
+
+@pytest.mark.django_db
+def test_api_reject_change_request_none(orga_client, submission, orga_user):
+    with scope(event=submission.event):
+        url = f"{submission.urls.api}reject-change-request/"
+        response = orga_client.post(url, follow=True)
+        assert response.status_code == 400
+        content = json.loads(response.content.decode())
+        assert "No change request" in content["detail"]
