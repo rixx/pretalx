@@ -1809,7 +1809,10 @@ def test_orga_can_delete_invitation(client, orga_user_write_token, submission):
 
 @pytest.mark.django_db
 def test_orga_can_resend_invitation(client, orga_user_write_token, submission):
+    from django.core import mail as djmail
     from pretalx.submission.models import SubmissionInvitation
+
+    djmail.outbox = []
 
     with scope(event=submission.event):
         invitation = SubmissionInvitation.objects.create(
@@ -1829,6 +1832,9 @@ def test_orga_can_resend_invitation(client, orga_user_write_token, submission):
     content = json.loads(response.text)
 
     assert response.status_code == 200, content
+    # Verify email was sent
+    assert len(djmail.outbox) == 1
+    assert djmail.outbox[0].to == ["new@speaker.org"]
 
 
 @pytest.mark.django_db

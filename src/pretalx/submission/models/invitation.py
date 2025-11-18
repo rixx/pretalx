@@ -6,7 +6,6 @@ import string
 from django.db import models
 from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
-from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 
 from pretalx.common.models.mixins import PretalxModel
@@ -61,7 +60,7 @@ class SubmissionInvitation(PretalxModel):
         )
 
     def send(self, subject=None, text=None):
-        from pretalx.mail.models import QueuedMail
+        from pretalx.mail.models import QueuedMail, get_prefixed_subject
 
         invitation_link = self.invitation_url
 
@@ -90,12 +89,15 @@ The {event} team"""
         else:
             invitation_subject = subject
 
+        # Use event's subject prefix for consistency
+        invitation_subject = get_prefixed_subject(self.event, str(invitation_subject))
+
         mail = QueuedMail.objects.create(
             event=self.event,
             to=self.email,
             subject=str(invitation_subject),
             text=str(invitation_text),
-            locale=get_language(),
+            locale=self.submission.get_email_locale(),
         )
         mail.send()
         return mail

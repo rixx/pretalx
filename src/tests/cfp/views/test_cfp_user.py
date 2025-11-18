@@ -755,6 +755,74 @@ def test_cannot_exceed_max_speakers_with_invitation(speaker_client, submission):
 
 
 @pytest.mark.django_db
+def test_invitation_url_is_valid(speaker_client, submission):
+    from pretalx.submission.models import SubmissionInvitation
+
+    djmail.outbox = []
+    # Create an invitation
+    data = {
+        "speaker": "newsp@example.com",
+        "subject": "Please join!",
+        "text": "Click {invitation_link} to accept",
+    }
+    response = speaker_client.post(submission.urls.invite, follow=True, data=data)
+    assert response.status_code == 200
+
+    # Check that email was sent
+    assert len(djmail.outbox) == 1
+    email = djmail.outbox[0]
+    assert email.to == ["newsp@example.com"]
+
+    # Extract the invitation URL from the email body
+    assert "{invitation_link}" not in email.body
+    assert f"/invitation/{submission.code}/" in email.body
+
+    # Get the invitation from the database
+    invitation = SubmissionInvitation.objects.get(
+        submission=submission, email="newsp@example.com"
+    )
+
+    # Verify the URL in the email contains the correct token
+    assert invitation.token in email.body
+    assert invitation.invitation_url in email.body
+
+
+@pytest.mark.django_db
+def test_cannot_accept_invitation_if_already_speaker(orga_client, submission, orga_user):
+    from django_scopes import scope
+    from pretalx.submission.models import SubmissionInvitation
+
+    with scope(event=submission.event):
+        # Orga user is not a speaker initially
+        assert orga_user not in submission.speakers.all()
+
+        # Create invitation for orga user
+        invitation = SubmissionInvitation.objects.create(
+            submission=submission, email=orga_user.email
+        )
+
+        # Manually add them as a speaker before accepting
+        submission.speakers.add(orga_user)
+        assert submission.speakers.count() == 2
+
+    # Try to accept invitation
+    url = f"/test/invitation/{submission.code}/{invitation.token}"
+    response = orga_client.post(url, follow=True)
+    assert response.status_code == 200
+
+    # Should show message that already a speaker
+    assert "already a speaker" in response.content.decode()
+
+    with scope(event=submission.event):
+        # Invitation should be deleted
+        assert not SubmissionInvitation.objects.filter(pk=invitation.pk).exists()
+
+        # Speaker count should not change
+        submission.refresh_from_db()
+        assert submission.speakers.count() == 2
+
+
+@pytest.mark.django_db
 def test_can_accept_invitation(orga_client, submission, orga_user):
     from pretalx.submission.models import SubmissionInvitation
 

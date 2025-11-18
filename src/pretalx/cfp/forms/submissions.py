@@ -22,14 +22,11 @@ class SubmissionInvitationForm(forms.Form):
         subject = phrases.cfp.invite_subject.format(speaker=speaker.get_display_name())
         initial["subject"] = get_prefixed_subject(submission.event, subject)
 
-        # Create a temporary invitation to generate the URL
-        temp_invitation = SubmissionInvitation(submission=submission)
-        invitation_url = temp_invitation.invitation_url
-
+        # Use a placeholder for the URL - it will be filled in when the invitation is created
         initial["text"] = phrases.cfp.invite_text.format(
             event=submission.event.name,
             title=submission.title,
-            url=invitation_url,
+            url="{invitation_link}",
             speaker=speaker.get_display_name(),
         )
         super().__init__(*args, **kwargs)
@@ -68,8 +65,10 @@ class SubmissionInvitationForm(forms.Form):
             submission=self.submission,
             email=email,
         )
+        # Replace placeholder with actual invitation URL
+        text = self.cleaned_data["text"].replace("{invitation_link}", invitation.invitation_url)
         invitation.send(
             subject=self.cleaned_data["subject"],
-            text=self.cleaned_data["text"],
+            text=text,
         )
         return invitation

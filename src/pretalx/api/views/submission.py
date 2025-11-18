@@ -413,15 +413,6 @@ class SubmissionViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelVie
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Check if there's already a pending invitation
-        if SubmissionInvitation.objects.filter(
-            submission=submission, email__iexact=email
-        ).exists():
-            return Response(
-                {"detail": "This person has already been invited."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         # Check if max_speakers limit has been reached
         max_speakers = submission.event.cfp.fields.get("additional_speaker", {}).get("max_speakers")
         if max_speakers is not None:
@@ -434,14 +425,26 @@ class SubmissionViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelVie
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        invitation = SubmissionInvitation.objects.create(
-            submission=submission, email=email
-        )
+        # Use get_or_create to handle race conditions
+        try:
+            invitation, created = SubmissionInvitation.objects.get_or_create(
+                submission=submission, email=email
+            )
+            if not created:
+                return Response(
+                    {"detail": "This person has already been invited."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        except Exception as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
         invitation.send()
         submission.log_action(
             "pretalx.submission.speakers.invite", person=self.request.user, orga=True
         )
-        submission.refresh_from_db()
         return Response(
             SubmissionOrgaSerializer(
                 submission, context=self.get_serializer_context()
@@ -463,7 +466,12 @@ class SubmissionViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelVie
                 {"detail": "Invitation not found."}, status=status.HTTP_404_NOT_FOUND
             )
         invitation.send()
-        submission.refresh_from_db()
+        submission.log_action(
+            "pretalx.submission.speakers.invite.resend",
+            person=self.request.user,
+            orga=True,
+            data={"email": invitation.email},
+        )
         return Response(
             SubmissionOrgaSerializer(
                 submission, context=self.get_serializer_context()

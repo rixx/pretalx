@@ -593,11 +593,19 @@ class SubmissionInviteAcceptView(LoggedInEventPageMixin, DetailView):
             )
             return redirect(self.request.event.urls.user)
 
+        # Check if user is already a speaker
+        if submission.speakers.filter(pk=self.request.user.pk).exists():
+            messages.info(
+                self.request,
+                _("You are already a speaker for this proposal."),
+            )
+            invitation.delete()
+            return redirect(submission.urls.user_base)
+
         submission.speakers.add(self.request.user)
         submission.log_action(
             "pretalx.submission.speakers.add", person=self.request.user
         )
-        submission.save()
 
         # Delete the invitation after successful acceptance
         invitation.delete()
