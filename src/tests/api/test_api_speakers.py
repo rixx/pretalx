@@ -588,11 +588,10 @@ def test_speaker_retrieve_answers_scoped_to_event(
 
         from pretalx.person.models import SpeakerProfile
 
-        profile, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=sub2.event)
+        profile, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=other_event)
 
         sub2.speaker_profiles.add(profile)
         sub2.save()
-        SpeakerProfile.objects.create(user=speaker, event=other_event)
         question2 = Question.objects.create(
             event=other_event,
             question="Question for Event 2?",
@@ -600,7 +599,7 @@ def test_speaker_retrieve_answers_scoped_to_event(
             active=True,
         )
         answer2 = Answer.objects.create(
-            answer="Answer 2", question=question2, speaker_profile=speaker.event_profile(other_event)
+            answer="Answer 2", question=question2, speaker_profile=profile
         )
         team = other_event.teams.first()
         team.members.add(orga_user)
