@@ -583,9 +583,9 @@ class QuestionFilterForm(forms.Form):
     def get_question_information(self, question):
         result = {}
         talks = self.get_submissions()
-        speakers = self.event.submitters.filter(submissions__in=talks)
+        speakers = self.event.submitters.filter(profiles__submissions__in=talks)
         answers = question.answers.filter(
-            Q(person__in=speakers) | Q(submission__in=talks)
+            Q(speaker_profile__user__in=speakers) | Q(submission__in=talks)
         )
         result["answer_count"] = answers.count()
         result["missing_answers"] = question.missing_answers(
