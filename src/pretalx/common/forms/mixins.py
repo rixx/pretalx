@@ -342,21 +342,27 @@ class QuestionFieldsMixin:
             field.widget.attrs["placeholder"] = ""  # XSS
             return field
         if question.variant == QuestionVariant.MULTIPLE:
+            from django.core.exceptions import ValidationError
+            from django.utils.translation import gettext as __
+
             choices = question.options.all()
 
             # Build help text with choice limits
             choice_help_text = help_text
             if question.min_choices or question.max_choices:
-                from django.utils.translation import gettext as _
                 if question.min_choices and question.max_choices:
                     if question.min_choices == question.max_choices:
-                        choice_help_text = f"{choice_help_text} {_('Please select exactly %d options.') % question.min_choices}"
+                        limit_text = __('Please select exactly %d options.') % question.min_choices
                     else:
-                        choice_help_text = f"{choice_help_text} {_('Please select between %d and %d options.') % (question.min_choices, question.max_choices)}"
+                        limit_text = __('Please select between %d and %d options.') % (
+                            question.min_choices,
+                            question.max_choices,
+                        )
                 elif question.min_choices:
-                    choice_help_text = f"{choice_help_text} {_('Please select at least %d options.') % question.min_choices}"
-                elif question.max_choices:
-                    choice_help_text = f"{choice_help_text} {_('Please select at most %d options.') % question.max_choices}"
+                    limit_text = __('Please select at least %d options.') % question.min_choices
+                else:
+                    limit_text = __('Please select at most %d options.') % question.max_choices
+                choice_help_text = f"{choice_help_text} {limit_text}" if help_text else limit_text
 
             field = forms.ModelMultipleChoiceField(
                 queryset=choices,
@@ -377,26 +383,20 @@ class QuestionFieldsMixin:
             )
 
             # Add validator for min/max choices
-            def validate_choice_count(value):
-                from django.core.exceptions import ValidationError
-                from django.utils.translation import gettext as _
-                count = len(value) if value else 0
-                if question.min_choices and count < question.min_choices:
-                    raise ValidationError(
-                        _("Please select at least %(min)d options (you selected %(count)d).") % {
-                            'min': question.min_choices,
-                            'count': count
-                        }
-                    )
-                if question.max_choices and count > question.max_choices:
-                    raise ValidationError(
-                        _("Please select at most %(max)d options (you selected %(count)d).") % {
-                            'max': question.max_choices,
-                            'count': count
-                        }
-                    )
-
             if question.min_choices or question.max_choices:
+                def validate_choice_count(value):
+                    count = len(value) if value else 0
+                    if question.min_choices and count < question.min_choices:
+                        raise ValidationError(
+                            __("Please select at least %(min)d options (you selected %(count)d).")
+                            % {"min": question.min_choices, "count": count}
+                        )
+                    if question.max_choices and count > question.max_choices:
+                        raise ValidationError(
+                            __("Please select at most %(max)d options (you selected %(count)d).")
+                            % {"max": question.max_choices, "count": count}
+                        )
+
                 field.validators.append(validate_choice_count)
 
             field.original_help_text = original_help_text
