@@ -547,8 +547,11 @@ class ReviewViewMixin:
 
     @cached_property
     def object(self):
+        from pretalx.person.models import User
         return (
-            self.submission.reviews.exclude(user__in=self.submission.speaker_profiles.all())
+            self.submission.reviews.exclude(
+                user__in=User.objects.filter(profiles__in=self.submission.speaker_profiles.all())
+            )
             .filter(user=self.request.user)
             .first()
         )
@@ -609,10 +612,7 @@ class ReviewSubmission(ReviewViewMixin, PermissionRequired, CreateOrUpdateView):
 
     @context
     def profiles(self):
-        return [
-            speaker.event_profile(self.request.event)
-            for speaker in self.submission.speaker_profiles.all()
-        ]
+        return list(self.submission.speaker_profiles.all())
 
     @context
     @cached_property
