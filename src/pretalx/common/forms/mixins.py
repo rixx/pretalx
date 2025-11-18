@@ -425,6 +425,15 @@ class QuestionFieldsMixin:
             else:
                 self._save_to_answer(field, field.answer, value)
         elif value != "" and value is not None and value is not False:
+            # Prepare speaker_profile if needed
+            speaker_profile = None
+            if field.question.target == QuestionTarget.SPEAKER and self.speaker:
+                from pretalx.person.models import User
+                if isinstance(self.speaker, User):
+                    speaker_profile = self.speaker.event_profile(self.event)
+                else:
+                    speaker_profile = self.speaker
+
             answer = Answer(
                 review=(
                     self.review
@@ -436,11 +445,7 @@ class QuestionFieldsMixin:
                     if field.question.target == QuestionTarget.SUBMISSION
                     else None
                 ),
-                person=(
-                    self.speaker
-                    if field.question.target == QuestionTarget.SPEAKER
-                    else None
-                ),
+                speaker_profile=speaker_profile,
                 question=field.question,
             )
             self._save_to_answer(field, answer, value)

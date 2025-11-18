@@ -556,7 +556,11 @@ class SubmissionInviteAcceptView(LoggedInEventPageMixin, DetailView):
             messages.error(self.request, _("You cannot accept this invitation."))
             return redirect(self.request.event.urls.user)
         submission = self.get_object()
-        submission.speaker_profiles.add(self.request.user)
+        from pretalx.person.models import SpeakerProfile
+        speaker_profile, created = SpeakerProfile.objects.get_or_create(
+            user=self.request.user, event=self.request.event
+        )
+        submission.speaker_profiles.add(speaker_profile)
         submission.log_action(
             "pretalx.submission.speaker_profiles.add", person=self.request.user
         )

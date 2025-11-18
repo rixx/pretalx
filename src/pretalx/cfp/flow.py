@@ -373,7 +373,11 @@ class InfoStep(GenericFlowStep, FormFlowStep):
             )
         form.save()
         submission = form.instance
-        submission.speaker_profiles.add(request.user)
+        from pretalx.person.models import SpeakerProfile
+        speaker_profile, created = SpeakerProfile.objects.get_or_create(
+            user=request.user, event=self.event
+        )
+        submission.speaker_profiles.add(speaker_profile)
         if draft:
             messages.success(
                 self.request,

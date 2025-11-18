@@ -64,6 +64,12 @@ class QuestionsForm(CfPFormMixin, QuestionFieldsMixin, forms.Form):
             initial_object = None
             initial = question.default_answer
             if target_object:
+                # Handle both User and SpeakerProfile objects
+                from pretalx.person.models import User
+                if isinstance(target_object, User):
+                    # Convert User to SpeakerProfile for this event
+                    target_object = target_object.event_profile(self.event)
+
                 answers = [
                     answer
                     for answer in target_object.answers.all()
