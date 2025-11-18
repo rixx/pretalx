@@ -341,7 +341,7 @@ class InfoStep(GenericFlowStep, FormFlowStep):
                         event=self.event,
                         code=code,
                         state=SubmissionStates.DRAFT,
-                        speakers__in=[self.request.user],
+                        speaker_profiles__user__in=[self.request.user],
                     )
                 )
             ):
@@ -373,7 +373,7 @@ class InfoStep(GenericFlowStep, FormFlowStep):
             )
         form.save()
         submission = form.instance
-        submission.speakers.add(request.user)
+        submission.speaker_profiles.add(request.user)
         if draft:
             messages.success(
                 self.request,

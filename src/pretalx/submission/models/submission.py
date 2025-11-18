@@ -154,17 +154,22 @@ class SpeakerRole(models.Model):
         on_delete=models.CASCADE,
         related_name="speaker_roles",
     )
-    user = models.ForeignKey(
-        to="person.User", on_delete=models.CASCADE, related_name="speaker_roles"
+    speaker_profile = models.ForeignKey(
+        to="person.SpeakerProfile", on_delete=models.CASCADE, related_name="speaker_roles"
     )
 
     objects = ScopedManager(event="submission__event")
 
     class Meta:
-        unique_together = (("submission", "user"),)
+        unique_together = (("submission", "speaker_profile"),)
+
+    @property
+    def user(self):
+        """Backwards compatibility property."""
+        return self.speaker_profile.user
 
     def __str__(self):
-        return f"SpeakerRole(submission={self.submission.code}, speaker={self.user})"
+        return f"SpeakerRole(submission={self.submission.code}, speaker={self.speaker_profile.user})"
 
 
 class Submission(GenerateCode, PretalxModel):
@@ -189,8 +194,8 @@ class Submission(GenerateCode, PretalxModel):
     """
 
     code = models.CharField(max_length=16, unique=True)
-    speakers = models.ManyToManyField(
-        to="person.User",
+    speaker_profiles = models.ManyToManyField(
+        to="person.SpeakerProfile",
         related_name="submissions",
         through=SpeakerRole,
         blank=True,
@@ -1057,13 +1062,19 @@ class Submission(GenerateCode, PretalxModel):
     def export_duration(self):
         return serialize_duration(minutes=self.get_duration())
 
-    @cached_property
-    def speaker_profiles(self):
-        from pretalx.person.models.profile import SpeakerProfile
+    @property
+    def speakers(self):
+        """Backwards compatibility property to access User objects.
 
-        return SpeakerProfile.objects.filter(
-            event=self.event, user__in=self.speakers.all()
-        )
+        Returns a queryset of User objects for this submission's speakers.
+        This is maintained for backwards compatibility - new code should use
+        speaker_profiles directly.
+        """
+        from pretalx.person.models import User
+
+        return User.objects.filter(
+            profiles__in=self.speaker_profiles.all()
+        ).distinct()
 
     @property
     def availabilities(self):
@@ -1133,17 +1144,19 @@ class Submission(GenerateCode, PretalxModel):
         context = {}
         try:
             speaker = User.objects.get(email__iexact=email)
-            if not speaker.profiles.filter(event=self.event).exists():
-                SpeakerProfile.objects.create(user=speaker, event=self.event)
+            speaker_profile, _ = SpeakerProfile.objects.get_or_create(
+                user=speaker, event=self.event
+            )
         except User.DoesNotExist:
             speaker = create_user(email=email, name=name, event=self.event)
+            speaker_profile = speaker.event_profile(self.event)
             user_created = True
             context["invitation_link"] = build_absolute_uri(
                 "cfp:event.new_recover",
                 kwargs={"event": self.event.slug, "token": speaker.pw_reset_token},
             )
 
-        self.speakers.add(speaker)
+        self.speaker_profiles.add(speaker_profile)
         self.log_action(
             "pretalx.submission.speakers.add",
             person=user,
@@ -1166,8 +1179,21 @@ class Submission(GenerateCode, PretalxModel):
         return speaker
 
     def remove_speaker(self, speaker, orga=True, user=None):
-        if self.speakers.filter(code=speaker.code).exists():
-            self.speakers.remove(speaker)
+        """Remove a speaker from this submission.
+
+        Args:
+            speaker: Can be either a User or SpeakerProfile object
+        """
+        from pretalx.person.models import SpeakerProfile, User
+
+        if isinstance(speaker, User):
+            speaker_profile = self.speaker_profiles.filter(user=speaker).first()
+        else:
+            speaker_profile = speaker
+            speaker = speaker.user
+
+        if speaker_profile:
+            self.speaker_profiles.remove(speaker_profile)
             self.log_action(
                 "pretalx.submission.speakers.remove",
                 person=user or speaker,

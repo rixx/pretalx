@@ -48,7 +48,7 @@ class SpeakerList(EventPermissionRequired, Filterable, ListView):
 
         speaker_mapping = defaultdict(list)
         for talk in self.request.event.talks.all().prefetch_related("speakers"):
-            for speaker in talk.speakers.all():
+            for speaker in talk.speaker_profiles.all():
                 speaker_mapping[speaker.code].append(talk)
 
         for profile in qs:

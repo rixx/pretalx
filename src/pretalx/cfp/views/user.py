@@ -140,7 +140,7 @@ class SubmissionViewMixin:
         )
 
     def dispatch(self, request, *args, **kwargs):
-        if self.request.user not in self.object.speakers.all():
+        if self.request.user not in self.object.speaker_profiles.all():
             # User has permission to see permission, but not to see this particular
             # page, so we redirect them to the organiser page
             return redirect(self.object.orga_urls.base)
@@ -182,12 +182,12 @@ class SubmissionsListView(LoggedInEventPageMixin, ListView):
     def drafts(self):
         return Submission.all_objects.filter(
             event=self.request.event,
-            speakers__in=[self.request.user],
+            speaker_profiles__user__in=[self.request.user],
             state=SubmissionStates.DRAFT,
         )
 
     def get_queryset(self):
-        return self.request.event.submissions.filter(speakers__in=[self.request.user])
+        return self.request.event.submissions.filter(speaker_profiles__user__in=[self.request.user])
 
 
 class SubmissionsWithdrawView(LoggedInEventPageMixin, SubmissionViewMixin, DetailView):
@@ -222,7 +222,7 @@ class SubmissionsWithdrawView(LoggedInEventPageMixin, SubmissionViewMixin, Detai
                             )
                         ).format(
                             title=obj.title,
-                            speakers=obj.display_speaker_names,
+                            speaker_profiles=obj.display_speaker_names,
                             user=request.user.get_display_name(),
                             event_dashboard=request.event.orga_urls.base.full(),
                             url=obj.orga_urls.edit.full(),
@@ -525,7 +525,7 @@ class SubmissionInviteView(LoggedInEventPageMixin, SubmissionViewMixin, FormView
         form.save()
         messages.success(self.request, phrases.cfp.invite_sent)
         self.submission.log_action(
-            "pretalx.submission.speakers.invite", person=self.request.user
+            "pretalx.submission.speaker_profiles.invite", person=self.request.user
         )
         return super().form_valid(form)
 
@@ -556,9 +556,9 @@ class SubmissionInviteAcceptView(LoggedInEventPageMixin, DetailView):
             messages.error(self.request, _("You cannot accept this invitation."))
             return redirect(self.request.event.urls.user)
         submission = self.get_object()
-        submission.speakers.add(self.request.user)
+        submission.speaker_profiles.add(self.request.user)
         submission.log_action(
-            "pretalx.submission.speakers.add", person=self.request.user
+            "pretalx.submission.speaker_profiles.add", person=self.request.user
         )
         submission.save()
         messages.success(self.request, phrases.cfp.invite_accepted)

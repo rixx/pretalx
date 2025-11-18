@@ -103,10 +103,10 @@ class SpeakerProfile(PretalxModel):
     def submissions(self):
         """All non-deleted.
 
-        :class:`~pretalx.submission.models.submission.Submission` objects by
-        this user on this event.
+        :class:`~pretalx.submission.models.submission.Submission` objects for
+        this speaker profile.
         """
-        return self.user.submissions.filter(event=self.event)
+        return self.event.submissions.filter(speaker_profiles=self)
 
     @cached_property
     def talks(self):
@@ -114,9 +114,9 @@ class SpeakerProfile(PretalxModel):
 
         :class:`~pretalx.submission.models.submission.Submission` objects.
 
-        Contains all visible talks by this user on this event.
+        Contains all visible talks for this speaker profile.
         """
-        return self.event.talks.filter(speakers__in=[self.user])
+        return self.event.talks.filter(speaker_profiles=self)
 
     @cached_property
     def answers(self):
@@ -126,13 +126,10 @@ class SpeakerProfile(PretalxModel):
         Includes all answers the user has given either for themselves or
         for their talks for this event.
         """
-        from pretalx.submission.models import Answer, Submission
+        from pretalx.submission.models import Answer
 
-        submissions = Submission.objects.filter(
-            event=self.event, speakers__in=[self.user]
-        )
         return Answer.objects.filter(
-            models.Q(submission__in=submissions) | models.Q(person=self.user)
+            models.Q(submission__speaker_profiles=self) | models.Q(person=self.user)
         ).order_by("question__position")
 
     @property

@@ -233,7 +233,7 @@ class SubmissionStateChange(SubmissionViewMixin, FormView):
             pending_emails = self.request.event.queued_mails.filter(
                 template=template,
                 sent__isnull=True,
-                to_users__in=self.object.speakers.all(),
+                to_users__in=self.object.speaker_profiles.all(),
             )
             if pending_emails.exists():
                 messages.warning(
@@ -300,7 +300,7 @@ class SubmissionSpeakers(ReviewerSubmissionFilter, SubmissionViewMixin, FormView
                     event=submission.event
                 ).exclude(code=submission.code),
             }
-            for speaker in submission.speakers.all()
+            for speaker in submission.speaker_profiles.all()
         ]
 
     def form_valid(self, form):

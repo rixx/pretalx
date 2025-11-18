@@ -173,7 +173,7 @@ class SpeakerDetail(SpeakerViewMixin, CreateOrUpdateView):
     @context
     @cached_property
     def submissions(self, **kwargs):
-        qs = self.request.event.submissions.filter(speakers__in=[self.object])
+        qs = self.request.event.submissions.filter(speaker_profiles__user__in=[self.object])
         if is_only_reviewer(self.request.user, self.request.event):
             return limit_for_reviewers(qs, self.request.event, self.request.user)
         return qs

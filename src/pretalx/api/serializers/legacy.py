@@ -190,7 +190,7 @@ class LegacySubmissionSerializer(I18nAwareModelSerializer):
         )
         if has_slots or self.can_view_speakers:
             return self.speaker_serializer_class(
-                obj.speakers.all(),
+                obj.speaker_profiles.all(),
                 many=True,
                 context=self.context,
                 event=self.event,

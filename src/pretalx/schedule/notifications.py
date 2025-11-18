@@ -20,7 +20,7 @@ def render_notifications(data, event, speaker=None, locale=None):
 
     The data format is expected to be a dict with the keys ``create`` and ``update``,
     each containing a list of TalkSlot objects, as returned by the values of the
-    Schedule.speakers.concerned return value."""
+    Schedule.speaker_profiles.concerned return value."""
     template = get_template("schedule/speaker_notification.txt")
     locale = locale or (
         speaker.get_locale_for_event(event) if speaker else event.locale

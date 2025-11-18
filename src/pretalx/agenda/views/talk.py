@@ -119,7 +119,7 @@ class TalkView(TalkMixin, TemplateView):
             slots__in=other_slots
         ).select_related("event")
         speakers = (
-            self.submission.speakers.all()
+            self.submission.speaker_profiles.all()
             .with_profiles(self.request.event)
             .prefetch_related(
                 Prefetch(
@@ -244,7 +244,7 @@ class FeedbackView(TalkMixin, FormView):
     @context
     @cached_property
     def speakers(self):
-        return self.talk.speakers.all()
+        return self.talk.speaker_profiles.all()
 
     @cached_property
     def is_speaker(self):

@@ -328,7 +328,7 @@ class User(
 
         with scopes_disabled():
             if (
-                Submission.all_objects.filter(speakers__in=[self]).count()
+                Submission.all_objects.filter(speaker_profiles__user=self).count()
                 or self.teams.count()
                 or self.answers.count()
             ):
@@ -451,6 +451,18 @@ class User(
         return Token.objects.create(user=self)
 
     regenerate_token.alters_data = True
+
+    @property
+    def submissions(self):
+        """Backwards compatibility property to access submissions.
+
+        Returns a queryset-like manager for this user's submissions across all events.
+        This is maintained for backwards compatibility - new code should use
+        profiles and then access submissions through speaker_profiles.
+        """
+        from pretalx.submission.models import Submission
+
+        return Submission.objects.filter(speaker_profiles__user=self)
 
     def get_password_reset_url(self, event=None, orga=False):
         if event:

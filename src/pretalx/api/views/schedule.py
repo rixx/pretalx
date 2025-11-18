@@ -227,7 +227,7 @@ class ScheduleViewSet(PretalxViewSetMixin, viewsets.ReadOnlyModelViewSet):
         summary="List Talk Slots",
         description="This endpoint always returns a filtered list. If you don’t provide any filters of your own, it will be filtered to show only talk slots in the latest published schedule.",
         parameters=[
-            build_search_docs("submission.title", "submission.speakers.name"),
+            build_search_docs("submission.title", "submission.speaker_profiles.name"),
             build_expand_docs(
                 "room",
                 "schedule",

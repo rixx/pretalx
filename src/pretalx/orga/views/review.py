@@ -548,7 +548,7 @@ class ReviewViewMixin:
     @cached_property
     def object(self):
         return (
-            self.submission.reviews.exclude(user__in=self.submission.speakers.all())
+            self.submission.reviews.exclude(user__in=self.submission.speaker_profiles.all())
             .filter(user=self.request.user)
             .first()
         )
@@ -562,7 +562,7 @@ class ReviewViewMixin:
     @context
     @cached_property
     def read_only(self):
-        if self.request.user in self.submission.speakers.all():
+        if self.request.user in self.submission.speaker_profiles.all():
             return True
         if self.object and self.object.pk:
             return not self.request.user.has_perm(
@@ -611,7 +611,7 @@ class ReviewSubmission(ReviewViewMixin, PermissionRequired, CreateOrUpdateView):
     def profiles(self):
         return [
             speaker.event_profile(self.request.event)
-            for speaker in self.submission.speakers.all()
+            for speaker in self.submission.speaker_profiles.all()
         ]
 
     @context
@@ -802,7 +802,7 @@ class RegenerateDecisionMails(
     @context
     @cached_property
     def count(self):
-        return sum(len(proposal.speakers.all()) for proposal in self.get_queryset())
+        return sum(len(proposal.speaker_profiles.all()) for proposal in self.get_queryset())
 
     def action_text(self):
         return _(

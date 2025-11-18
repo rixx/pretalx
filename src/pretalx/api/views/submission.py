@@ -352,7 +352,7 @@ class SubmissionViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelVie
         serializer = RemoveSpeakerSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         submission = self.get_object()
-        speaker = submission.speakers.filter(
+        speaker = submission.speaker_profiles.filter(
             code=serializer.validated_data["user"]
         ).first()
         if not speaker:  # pragma: no cover

@@ -184,11 +184,11 @@ class SubmissionSerializer(FlexFieldsSerializerMixin, PretalxSerializer):
         if not self.event:
             return []
         profiles = SpeakerProfile.objects.filter(
-            event=self.event, user__in=obj.speakers.all()
+            event=self.event, user__in=obj.speaker_profiles.all()
         ).distinct()
         if serializer := self.get_extra_flex_field("speakers", profiles):
             return serializer.data
-        return obj.speakers.values_list("code", flat=True)
+        return obj.speaker_profiles.values_list("code", flat=True)
 
     @extend_schema_field(list[int])
     def get_answers(self, obj):

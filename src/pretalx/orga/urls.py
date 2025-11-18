@@ -343,12 +343,12 @@ urlpatterns = [
                             path(
                                 "speakers/",
                                 submission.SubmissionSpeakers.as_view(),
-                                name="submissions.speakers.view",
+                                name="submissions.speaker_profiles.view",
                             ),
                             path(
                                 "speakers/delete",
                                 submission.SubmissionSpeakersDelete.as_view(),
-                                name="submissions.speakers.delete",
+                                name="submissions.speaker_profiles.delete",
                             ),
                             path(
                                 "reviews/",

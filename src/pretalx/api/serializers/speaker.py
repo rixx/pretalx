@@ -42,7 +42,7 @@ class SpeakerSerializer(FlexFieldsSerializerMixin, PretalxSerializer):
         submissions = self.context.get("submissions")
         if not submissions:
             return []
-        submissions = submissions.filter(speakers__in=[obj.user])
+        submissions = submissions.filter(speaker_profiles=obj)
         if serializer := self.get_extra_flex_field("submissions", submissions):
             return serializer.data
         return submissions.values_list("code", flat=True)

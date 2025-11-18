@@ -228,7 +228,7 @@ If you have any interest in {self.fake.catch_phrase().lower()}, {self.fake.catch
         for _ in range(self.fake.random_int(min=5, max=15)):
             submission = random.choice(submissions)
             speaker = random.choice(speakers)
-            submission.speakers.add(speaker)
+            submission.speaker_profiles.add(speaker)
 
     def build_speaker(self):
         email = self.fake.user_name() + "@example.org"
@@ -258,7 +258,7 @@ If you have any interest in {self.fake.catch_phrase().lower()}, {self.fake.catch
                 do_not_record=random.choice([False] * 10 + [True]),
             )
             submission.log_action("pretalx.submission.create", person=speaker)
-        submission.speakers.add(speaker)
+        submission.speaker_profiles.add(speaker)
         return submission
 
     def build_review_stage(self):

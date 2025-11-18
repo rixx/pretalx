@@ -14,7 +14,7 @@ class FeedbackForm(forms.ModelForm):
     def __init__(self, talk, **kwargs):
         super().__init__(**kwargs)
         self.instance.talk = talk
-        speakers = talk.speakers.all()
+        speakers = talk.speaker_profiles.all()
         self.fields["speaker"].queryset = speakers
         self.fields["speaker"].empty_label = _("All speakers")
         if len(speakers) == 1:
@@ -23,9 +23,9 @@ class FeedbackForm(forms.ModelForm):
     def save(self, *args, **kwargs):
         if (
             not self.cleaned_data["speaker"]
-            and self.instance.talk.speakers.count() == 1
+            and self.instance.talk.speaker_profiles.count() == 1
         ):
-            self.instance.speaker = self.instance.talk.speakers.first()
+            self.instance.speaker = self.instance.talk.speaker_profiles.first()
         return super().save(*args, **kwargs)
 
     class Meta:

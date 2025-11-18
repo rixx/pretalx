@@ -139,7 +139,7 @@ def nav_typeahead(request):
                     # We need this subquery to filter out profiles without submissions.
                     has_submission=Exists(
                         Submission.objects.filter(
-                            event=OuterRef("event"), speakers__in=OuterRef("user")
+                            event=OuterRef("event"), speaker_profiles__user__in=OuterRef("user")
                         )
                     )
                 )

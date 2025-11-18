@@ -369,7 +369,7 @@ class CfPQuestionRemind(EventPermissionRequired, FormView):
     @staticmethod
     def get_missing_answers(*, questions, person, submissions):
         missing = []
-        submissions = submissions.filter(speakers__in=[person])
+        submissions = submissions.filter(speaker_profiles__user__in=[person])
         for question in questions:
             if question.target == QuestionTarget.SUBMISSION:
                 for submission in submissions:

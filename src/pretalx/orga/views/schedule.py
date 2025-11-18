@@ -304,7 +304,7 @@ def serialize_slot(slot, warnings=None):
             "id": slot.pk,
             "title": str(slot.submission.title),
             "speakers": [
-                {"name": speaker.name} for speaker in slot.submission.speakers.all()
+                {"name": speaker.name} for speaker in slot.submission.speaker_profiles.all()
             ],
             "submission_type": str(slot.submission.submission_type.name),
             "track": (
@@ -446,15 +446,15 @@ class ScheduleAvailabilities(EventPermissionRequired, View):
             .select_related("submission")
             .prefetch_related("submission__speakers")
         ):
-            if talk.submission.speakers.count() == 1:
+            if talk.submission.speaker_profiles.count() == 1:
                 result[talk.id] = [
                     av.serialize(full=False)
-                    for av in speaker_avails[talk.submission.speakers.first().pk]
+                    for av in speaker_avails[talk.submission.speaker_profiles.first().pk]
                 ]
             else:
                 all_speaker_avails = [
                     speaker_avails[speaker.pk]
-                    for speaker in talk.submission.speakers.all()
+                    for speaker in talk.submission.speaker_profiles.all()
                     if speaker_avails[speaker.pk]
                 ]
                 if not all_speaker_avails:

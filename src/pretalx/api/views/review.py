@@ -76,7 +76,7 @@ class ReviewViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelViewSet
         if not self.event:
             return Submission.objects.none()
         submissions = self.event.submissions.all().exclude(
-            speakers__in=[self.request.user]
+            speaker_profiles__user__in=[self.request.user]
         )
         return get_reviewable_submissions(self.event, self.request.user, submissions)
 

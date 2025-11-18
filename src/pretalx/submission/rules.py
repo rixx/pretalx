@@ -76,7 +76,7 @@ def use_tracks(user, obj):
 @rules.predicate
 def is_speaker(user, obj):
     obj = getattr(obj, "submission", obj)
-    return obj and user in obj.speakers.all()
+    return obj and user in obj.speaker_profiles.all()
 
 
 @rules.predicate
@@ -264,7 +264,7 @@ def limit_for_reviewers(
 ):
     if not (phase := event.active_review_phase):
         queryset = event.submissions.none()
-    queryset = queryset.exclude(speakers__in=[user])
+    queryset = queryset.exclude(speaker_profiles__user__in=[user])
     if phase and phase.proposal_visibility == "assigned":
         queryset = annotate_assigned(queryset, event, user)
         return queryset.filter(is_assigned__gte=1)
