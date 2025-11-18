@@ -1,10 +1,13 @@
 # SPDX-FileCopyrightText: 2018-present Tobias Kunze
 # SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
 
+import logging
+
 from django.contrib import messages
+from django.core.exceptions import ImproperlyConfigured
 from django.db import transaction
 from django.shortcuts import redirect
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils.functional import cached_property
 from django.views.generic import TemplateView
 from django_context_decorator import context
@@ -12,6 +15,8 @@ from django_context_decorator import context
 from pretalx.common.plugins import get_all_plugins_grouped
 from pretalx.common.text.phrases import phrases
 from pretalx.common.views.mixins import EventPermissionRequired
+
+logger = logging.getLogger(__name__)
 
 
 class EventPluginsView(EventPermissionRequired, TemplateView):
@@ -33,10 +38,29 @@ class EventPluginsView(EventPermissionRequired, TemplateView):
         return self.request.event.plugin_list
 
     def _prepare_links(self, links):
-        """Prepare plugin links for display."""
+        """Prepare plugin links for display.
+
+        Args:
+            links: List of tuples in format ((label, ...), urlname, url_kwargs)
+
+        Returns:
+            List of dicts with 'label' and 'url' keys
+        """
+        if not links:
+            return []
+
         result = []
         for link_tuple in links:
-            labels, urlname, url_kwargs = link_tuple
+            try:
+                labels, urlname, url_kwargs = link_tuple
+            except (TypeError, ValueError) as e:
+                logger.warning(
+                    "Invalid link tuple format in plugin links: %s",
+                    link_tuple,
+                    exc_info=True
+                )
+                continue
+
             # labels can be a single string or a tuple of strings
             if isinstance(labels, str):
                 label = labels
@@ -47,12 +71,17 @@ class EventPluginsView(EventPermissionRequired, TemplateView):
             # Build the URL with event context
             try:
                 kwargs = {"event": self.request.event.slug}
-                kwargs.update(url_kwargs)
+                if url_kwargs:
+                    kwargs.update(url_kwargs)
                 url = reverse(urlname, kwargs=kwargs)
                 result.append({"label": label, "url": url})
-            except Exception:
+            except (NoReverseMatch, ImproperlyConfigured) as e:
                 # Skip links that can't be resolved
-                pass
+                logger.debug(
+                    "Could not resolve URL '%s' for plugin link: %s",
+                    urlname,
+                    e
+                )
 
         return result
 

@@ -21,8 +21,8 @@ class PluginApp(AppConfig):
         visible = True
         version = "0.0.0"
         settings_links = [
-            (("Test Settings",), "orga:event.plugins", {}),
+            (("Test Settings",), "orga:settings.plugins.select", {}),
         ]
         navigation_links = [
-            (("Test", "Navigation"), "orga:event.plugins", {}),
+            (("Test", "Navigation"), "orga:settings.plugins.select", {}),
         ]

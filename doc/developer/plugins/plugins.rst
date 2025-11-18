@@ -92,10 +92,13 @@ A working example would be::
             description = _("This plugin allows you to post talks to facebook.")
             category = "INTEGRATION"
             settings_links = [
+                # Links to plugin configuration pages
                 ((_("Facebook"), _("Settings")), "plugins:pretalx_facebook:settings", {}),
             ]
             navigation_links = [
+                # Links to plugin feature pages
                 ((_("Facebook"), _("Posts")), "plugins:pretalx_facebook:posts", {}),
+                ((_("Facebook"), _("Analytics")), "plugins:pretalx_facebook:analytics", {}),
             ]
 
 
