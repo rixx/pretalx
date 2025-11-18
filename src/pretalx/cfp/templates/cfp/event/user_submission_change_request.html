@@ -1,0 +1,50 @@
+<!--
+SPDX-FileCopyrightText: 2017-present Tobias Kunze
+SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
+-->
+
+{% extends "cfp/event/base.html" %}
+
+{% load event_tags %}
+{% load form_media %}
+{% load formsets %}
+{% load i18n %}
+{% load rules %}
+{% load static %}
+
+{% block title %}{% translate "Request changes to" %} {{ submission.title }} :: {% endblock title %}
+
+{% block scripts %}{% form_media %}{% endblock scripts %}
+
+{% block content %}
+    {% include "cfp/includes/user_submission_header.html" %}
+
+    <div class="alert alert-info">
+        {% blocktranslate trimmed %}
+            You cannot edit this proposal directly anymore, but you can request changes to it.
+            The organizers will review your request and approve or decline it.
+        {% endblocktranslate %}
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+        {% include "common/forms/errors.html" %}
+        {% include "common/forms/errors.html" with form=qform %}
+        {% csrf_token %}
+        {{ form }}
+        {{ qform }}
+        {% include "cfp/includes/submission_resources_form.html" %}
+
+        <div class="form-group">
+            <label for="change_request_comment">{% translate "Comment for organizers" %}</label>
+            <textarea class="form-control" name="change_request_comment" id="change_request_comment" rows="4" placeholder="{% translate "Please explain why you need to make these changes..." %}"></textarea>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-3 flip ml-auto">
+                <button type="submit" class="btn btn-block btn-success btn-lg" name="action" value="submit">
+                    {% translate "Submit change request" %}
+                </button>
+            </div>
+        </div>
+    </form>
+{% endblock content %}

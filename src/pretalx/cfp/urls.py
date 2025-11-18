@@ -89,6 +89,11 @@ urlpatterns = [
                                 user.SubmissionInviteView.as_view(),
                                 name="event.user.submission.invite",
                             ),
+                            path(
+                                "request_changes",
+                                user.SubmissionChangeRequestView.as_view(),
+                                name="event.user.submission.request_changes",
+                            ),
                         ]
                     ),
                 ),

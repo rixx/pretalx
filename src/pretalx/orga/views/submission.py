@@ -652,12 +652,19 @@ class SubmissionList(SubmissionListMixin, EventPermissionRequired, ListView):
 
     def get_queryset(self):
         qs = super().get_queryset()
+        if self.request.GET.get("has_change_request") == "true":
+            qs = qs.filter(change_request__isnull=False)
         return qs.order_by("state", "pending_state")
 
     @context
     @cached_property
     def pending_changes(self):
-        return self.get_queryset().filter(pending_state__isnull=False).count()
+        return super().get_queryset().filter(pending_state__isnull=False).count()
+
+    @context
+    @cached_property
+    def change_requests_count(self):
+        return super().get_queryset().filter(change_request__isnull=False).count()
 
 
 class FeedbackList(SubmissionViewMixin, PaginationMixin, ListView):
@@ -749,6 +756,70 @@ class Anonymise(SubmissionViewMixin, UpdateView):
                 )
             ]
         return context
+
+
+class SubmissionChangeRequestView(SubmissionViewMixin, TemplateView):
+    permission_required = "submission.orga_update_submission"
+    template_name = "orga/submission/change_request.html"
+
+    def get_permission_object(self):
+        return self.object or self.request.event
+
+    @cached_property
+    def object(self):
+        return get_object_or_404(
+            Submission.objects.filter(event=self.request.event),
+            code__iexact=self.kwargs.get("code"),
+        )
+
+    @context
+    def submission(self):
+        return self.object
+
+    @context
+    def change_request(self):
+        return self.object.change_request or {}
+
+    @context
+    def comment(self):
+        return self.change_request.get("comment", "")
+
+    @context
+    def changes(self):
+        from pretalx.common.diff_utils import render_diff
+
+        changes_data = self.change_request.get("changes", {})
+        changes_list = []
+
+        for field, new_value in changes_data.items():
+            if field.startswith("answer_"):
+                continue
+
+            old_value = getattr(self.object, field, "")
+            diff = render_diff(str(old_value), str(new_value))
+            changes_list.append({
+                "field": field,
+                "old_value": old_value,
+                "new_value": new_value,
+                "diff": diff,
+            })
+
+        return changes_list
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get("action")
+
+        if action == "accept":
+            self.object.accept_change_request(person=request.user)
+            messages.success(request, _("The change request has been accepted and applied."))
+        elif action == "reject":
+            self.object.reject_change_request(person=request.user)
+            messages.success(request, _("The change request has been rejected."))
+        else:
+            messages.error(request, _("Invalid action."))
+
+        return redirect(self.object.orga_urls.base)
 
 
 class SubmissionHistory(SubmissionViewMixin, ListView):

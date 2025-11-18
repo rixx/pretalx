@@ -379,6 +379,22 @@ class EventDashboardView(EventPermissionRequired, TemplateView):
                     "priority": 56,
                 }
             )
+        change_requests_count = event.submissions.filter(
+            change_request__isnull=False
+        ).count()
+        if change_requests_count and change_requests_count > 0:
+            result["tiles"].append(
+                {
+                    "large": change_requests_count,
+                    "small": ngettext_lazy(
+                        "submission with change request",
+                        "submissions with change requests",
+                        change_requests_count,
+                    ),
+                    "url": event.orga_urls.submissions + "?has_change_request=true",
+                    "priority": 57,
+                }
+            )
         submitter_count = event.submitters.count()
         speaker_count = event.speakers.count()
         rejected_count = (

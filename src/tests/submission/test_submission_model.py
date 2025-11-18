@@ -518,3 +518,50 @@ def test_editable_with_access_code_for_submission_type(submission):
 
         del submission.editable
         assert submission.editable
+
+
+@pytest.mark.django_db
+def test_change_request_field_exists(submission):
+    with scope(event=submission.event):
+        assert hasattr(submission, "change_request")
+        assert submission.change_request is None
+        assert not submission.has_change_request
+
+
+@pytest.mark.django_db
+def test_change_request_accept(submission):
+    with scope(event=submission.event):
+        old_title = submission.title
+        new_title = "New Title"
+
+        submission.change_request = {
+            "changes": {"title": new_title},
+            "comment": "Please change the title",
+        }
+        submission.save()
+
+        assert submission.has_change_request
+
+        submission.accept_change_request()
+
+        assert submission.title == new_title
+        assert not submission.has_change_request
+
+
+@pytest.mark.django_db
+def test_change_request_reject(submission):
+    with scope(event=submission.event):
+        old_title = submission.title
+
+        submission.change_request = {
+            "changes": {"title": "New Title"},
+            "comment": "Please change the title",
+        }
+        submission.save()
+
+        assert submission.has_change_request
+
+        submission.reject_change_request()
+
+        assert submission.title == old_title
+        assert not submission.has_change_request

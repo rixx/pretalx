@@ -302,6 +302,12 @@ class Submission(GenerateCode, PretalxModel):
         max_length=32, unique=True, null=True, blank=True, default=generate_invite_code
     )
     anonymised_data = models.TextField(null=True, blank=True, default="{}")
+    change_request = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name=_("Change request"),
+        help_text=_("Pending change request from speaker when editing is blocked."),
+    )
     assigned_reviewers = models.ManyToManyField(
         verbose_name=_("Assigned reviewers"),
         to="person.User",
@@ -359,6 +365,7 @@ class Submission(GenerateCode, PretalxModel):
         withdraw = "{user_base}withdraw"
         discard = "{user_base}discard"
         confirm = "{user_base}confirm"
+        request_changes = "{user_base}request_changes"
         public_base = "{self.event.urls.base}talk/{self.code}"
         public = "{public_base}/"
         feedback = "{public}feedback/"
@@ -388,6 +395,7 @@ class Submission(GenerateCode, PretalxModel):
         apply_pending = "{base}apply_pending"
         anonymise = "{base}anonymise/"
         comments = "{base}comments/"
+        change_request = "{base}change_request/"
         quick_schedule = "{self.event.orga_urls.schedule}quick/{self.code}/"
         history = "{base}history/"
 
@@ -1212,6 +1220,35 @@ class Submission(GenerateCode, PretalxModel):
 
     def remove_favourite(self, user):
         SubmissionFavourite.objects.filter(user=user, submission=self).delete()
+
+    @property
+    def has_change_request(self):
+        return self.change_request is not None
+
+    def accept_change_request(self, person=None):
+        if not self.has_change_request:
+            return
+
+        changes = self.change_request.get("changes", {})
+        for field, new_value in changes.items():
+            if hasattr(self, field):
+                setattr(self, field, new_value)
+
+        self.change_request = None
+        self.save()
+        self.log_action("pretalx.submission.change_request.accept", person=person, orga=True)
+
+    accept_change_request.alters_data = True
+
+    def reject_change_request(self, person=None):
+        if not self.has_change_request:
+            return
+
+        self.change_request = None
+        self.save()
+        self.log_action("pretalx.submission.change_request.reject", person=person, orga=True)
+
+    reject_change_request.alters_data = True
 
     def log_action(self, action, data=None, **kwargs):
         if self.state != SubmissionStates.DRAFT:

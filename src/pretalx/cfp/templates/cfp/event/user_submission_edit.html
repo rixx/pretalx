@@ -66,6 +66,12 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
         {% if not can_edit %}
             <div class="alert alert-info">
                 {{ phrases.cfp.submission_uneditable }}
+                {% if request.event|get_feature_flag:"allow_speaker_change_requests" %}
+                    <br><br>
+                    <a href="{{ submission.urls.request_changes }}" class="btn btn-sm btn-info">
+                        <i class="fa fa-edit"></i> {% translate "Request changes to this proposal" %}
+                    </a>
+                {% endif %}
             </div>
         {% endif %}
         {{ form }}

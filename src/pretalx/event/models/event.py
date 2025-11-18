@@ -96,6 +96,7 @@ def default_feature_flags():
         "present_multiple_times": False,
         "submission_public_review": True,
         "speakers_can_edit_submissions": True,
+        "allow_speaker_change_requests": True,
     }
 
 

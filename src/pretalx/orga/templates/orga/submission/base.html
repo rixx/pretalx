@@ -68,6 +68,11 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
                     {% translate "Anonymisation" %}
                 </a>
             {% endif %}
+            {% if submission.has_change_request and can_edit_submission %}
+                <a role="tab" href="{{ submission.orga_urls.change_request }}" {% if "submissions.change_request" in url_name %}aria-selected="true"{% else %}aria-selected="false"{% endif %}>
+                    {% translate "Change Request" %} <span class="badge badge-warning">!</span>
+                </a>
+            {% endif %}
             {% if submission.feedback.count and request.event|get_feature_flag:"use_feedback" %}
                 <a role="tab" href="{{ submission.orga_urls.feedback }}" {% if "submissions.feedback" in url_name %}aria-selected="true"{% else %}aria-selected="false"{% endif %}>
                     {% translate "Feedback" %}

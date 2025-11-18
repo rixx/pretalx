@@ -111,6 +111,7 @@ class LogMixin:
             "user",
             "event",
             "code",
+            "change_request",
         }
         data = {}
 

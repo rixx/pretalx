@@ -381,6 +381,11 @@ urlpatterns = [
                                 name="submissions.anonymise",
                             ),
                             path(
+                                "change_request/",
+                                submission.SubmissionChangeRequestView.as_view(),
+                                name="submissions.change_request",
+                            ),
+                            path(
                                 "comments/",
                                 submission.CommentList.as_view(),
                                 name="submissions.comments.list",

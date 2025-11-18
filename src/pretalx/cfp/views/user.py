@@ -486,6 +486,128 @@ class SubmissionsEditView(LoggedInEventPageMixin, SubmissionViewMixin, UpdateVie
         return redirect(self.object.urls.user_base)
 
 
+class SubmissionChangeRequestView(LoggedInEventPageMixin, SubmissionViewMixin, UpdateView):
+    template_name = "cfp/event/user_submission_change_request.html"
+    model = Submission
+    form_class = InfoForm
+    context_object_name = "submission"
+    permission_required = "submission.view_submission"
+
+    def get_permission_object(self):
+        return self.object
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.event.get_feature_flag("allow_speaker_change_requests"):
+            messages.error(request, _("Change requests are not enabled for this event."))
+            return redirect(self.get_object().urls.user_base)
+        if self.get_object().editable:
+            messages.info(request, _("You can edit this proposal directly."))
+            return redirect(self.get_object().urls.user_base)
+        return super().dispatch(request, *args, **kwargs)
+
+    @context
+    def size_warning(self):
+        return SizeFileInput.get_size_warning()
+
+    @context
+    @cached_property
+    def formset(self):
+        formset_class = inlineformset_factory(
+            Submission,
+            Resource,
+            form=ResourceForm,
+            formset=BaseModelFormSet,
+            can_delete=True,
+            extra=0,
+        )
+        submission = self.object
+        return formset_class(
+            self.request.POST if self.request.method == "POST" else None,
+            files=self.request.FILES if self.request.method == "POST" else None,
+            queryset=(
+                submission.resources.all() if submission else Resource.objects.none()
+            ),
+            prefix="resource",
+        )
+
+    @context
+    @cached_property
+    def qform(self):
+        return QuestionsForm(
+            data=self.request.POST if self.request.method == "POST" else None,
+            files=self.request.FILES if self.request.method == "POST" else None,
+            submission=self.object,
+            target="submission",
+            event=self.request.event,
+        )
+
+    @cached_property
+    def object(self):
+        return self.get_object()
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["event"] = self.request.event
+        kwargs["field_configuration"] = (
+            self.request.event.cfp_flow.config.get("steps", {})
+            .get("info", {})
+            .get("fields")
+        )
+        kwargs["remove_additional_speaker"] = True
+        return kwargs
+
+    @transaction.atomic
+    def form_valid(self, form):
+        comment = self.request.POST.get("change_request_comment", "")
+
+        old_submission_data = self.object._get_instance_data() or {}
+        old_questions_data = self.qform.serialize_answers() or {}
+        new_submission_data = form.cleaned_data
+        new_questions_data = {}
+
+        for field in form.fields:
+            if field in form.cleaned_data and hasattr(self.object, field):
+                new_submission_data[field] = form.cleaned_data[field]
+
+        if self.qform.is_valid():
+            new_questions_data = self.qform.serialize_answers() or {}
+
+        changes = {}
+        for key, value in new_submission_data.items():
+            old_value = old_submission_data.get(key)
+            if value != old_value:
+                changes[key] = value
+
+        for key, value in new_questions_data.items():
+            old_value = old_questions_data.get(key)
+            if value != old_value:
+                changes[f"answer_{key}"] = value
+
+        if not changes:
+            messages.info(self.request, _("No changes were detected."))
+            return redirect(self.object.urls.user_base)
+
+        self.object.change_request = {
+            "changes": changes,
+            "comment": comment,
+            "submission_data": new_submission_data,
+            "question_data": new_questions_data,
+        }
+        self.object.save()
+
+        action = "pretalx.submission.change_request.update" if self.object.has_change_request else "pretalx.submission.change_request.create"
+        self.object.log_action(action, person=self.request.user)
+
+        messages.success(self.request, _("Your change request has been submitted."))
+        return redirect(self.object.urls.user_base)
+
+    def post(self, request, *args, **kwargs):
+        form = self.get_form()
+        if form.is_valid() and self.qform.is_valid():
+            return self.form_valid(form)
+        return self.form_invalid(form)
+
+
 class DeleteAccountView(LoggedInEventPageMixin, View):
     @staticmethod
     def post(request, event):

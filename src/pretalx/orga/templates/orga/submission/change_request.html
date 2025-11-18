@@ -1,0 +1,84 @@
+<!--
+SPDX-FileCopyrightText: 2025-present Tobias Kunze
+SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
+-->
+
+{% extends "orga/submission/base.html" %}
+
+{% load i18n %}
+{% load rich_text %}
+{% load rules %}
+{% load static %}
+
+{% block submission_title %}{% translate "Change Request" %} :: {% endblock submission_title %}
+
+{% block scripts %}
+    {{ block.super }}
+    <script defer src="{% static "common/js/ui/dialog.js" %}"></script>
+{% endblock scripts %}
+
+{% block submission_content %}
+    {% if not change_request %}
+        <div class="alert alert-info">
+            {% translate "This submission does not have any pending change requests." %}
+        </div>
+        <a href="{{ submission.orga_urls.base }}" class="btn btn-outline-primary">
+            {% translate "Back to submission" %}
+        </a>
+    {% else %}
+        <div class="alert alert-warning">
+            {% blocktranslate trimmed %}
+                The speaker has requested changes to this proposal. Review the changes below and decide whether to accept or reject them.
+                Note that the speaker will not be automatically notified of your decision.
+            {% endblocktranslate %}
+        </div>
+
+        {% if comment %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <strong>{% translate "Comment from speaker:" %}</strong>
+                </div>
+                <div class="card-body">
+                    {{ comment|linebreaks }}
+                </div>
+            </div>
+        {% endif %}
+
+        <div id="anonymise">
+            <div>
+                <div class="plaintext">
+                    <h2>{% translate "Current" %}</h2>
+                </div>
+                <div class="anonymised">
+                    <h2>{% translate "Requested" %}</h2>
+                </div>
+            </div>
+            {% for change in changes %}
+                <h4>{{ change.field|title }}</h4>
+                <div>
+                    <div class="plaintext">
+                        <div class="diff-old">{{ change.diff.old_html|safe }}</div>
+                    </div>
+                    <div class="anonymised">
+                        <div class="diff-new">{{ change.diff.new_html|safe }}</div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <form method="post" class="mt-4">
+            {% csrf_token %}
+            <div class="submit-group panel">
+                <button type="submit" name="action" value="accept" class="btn btn-success btn-lg">
+                    <i class="fa fa-check"></i> {% translate "Accept and apply changes" %}
+                </button>
+                <button type="submit" name="action" value="reject" class="btn btn-danger btn-lg">
+                    <i class="fa fa-times"></i> {% translate "Reject change request" %}
+                </button>
+                <a href="{{ submission.orga_urls.base }}" class="btn btn-outline-primary btn-lg">
+                    {% translate "Back to submission" %}
+                </a>
+            </div>
+        </form>
+    {% endif %}
+{% endblock submission_content %}
