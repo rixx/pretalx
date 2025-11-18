@@ -296,18 +296,6 @@ def invalidate_speaker_preview_cache(sender, instance, **kwargs):
         invalidate_preview_cache(instance.event, "speaker", instance.user.code)
 
 
-def invalidate_event_preview_caches(sender, instance, **kwargs):
-    """Invalidate all cached preview images when event settings change."""
-    from pretalx.common.social_preview import invalidate_preview_cache
-
-    if hasattr(instance, "slug"):
-        for submission in instance.submissions.all():
-            invalidate_preview_cache(instance, "submission", submission.code)
-
-        for speaker in instance.submitters.all():
-            invalidate_preview_cache(instance, "speaker", speaker.code)
-
-
 def invalidate_submission_speakers_preview_cache(sender, instance, action, **kwargs):
     """Invalidate submission preview when speakers are added/removed."""
     from pretalx.common.social_preview import invalidate_preview_cache
@@ -339,12 +327,6 @@ def register_social_preview_signals():
             invalidate_speaker_preview_cache,
             sender=SpeakerProfile,
             dispatch_uid="invalidate_speaker_preview_on_save",
-        )
-
-        post_save.connect(
-            invalidate_event_preview_caches,
-            sender=Event,
-            dispatch_uid="invalidate_event_previews_on_save",
         )
     except Exception:
         pass

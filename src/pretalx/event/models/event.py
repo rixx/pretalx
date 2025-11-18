@@ -139,15 +139,12 @@ def default_mail_settings():
 def default_social_preview_settings():
     return {
         "submission": {
-            "enabled": True,
             "layout": "default",
             "show_event_logo": True,
             "show_event_name": True,
             "show_speaker_avatars": True,
-            "show_submission_image": False,
         },
         "speaker": {
-            "enabled": True,
             "layout": "default",
             "show_event_logo": True,
             "show_event_name": True,

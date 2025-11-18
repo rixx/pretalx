@@ -10,6 +10,176 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
 
 {% block extra_title %}{% translate "Social Media Preview Images" %} :: {% endblock extra_title %}
 
+{% block extra_style %}
+<style>
+.preview-layout-examples {
+    margin: 20px 0;
+}
+
+.layout-example {
+    display: inline-block;
+    width: 240px;
+    height: 126px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    margin: 10px 10px 10px 0;
+    position: relative;
+    background: #fff;
+    overflow: hidden;
+}
+
+.layout-example-label {
+    text-align: center;
+    font-weight: bold;
+    margin-top: 5px;
+    font-size: 12px;
+}
+
+.layout-default {
+    padding: 8px;
+}
+
+.layout-default .accent-bar {
+    height: 2px;
+    background: #1da1f2;
+    margin-bottom: 8px;
+}
+
+.layout-default .logo-area {
+    width: 40px;
+    height: 20px;
+    background: #e0e0e0;
+    border-radius: 2px;
+    margin-bottom: 6px;
+}
+
+.layout-default .event-name {
+    width: 60px;
+    height: 6px;
+    background: #1da1f2;
+    border-radius: 1px;
+    margin-bottom: 8px;
+}
+
+.layout-default .title {
+    width: 100%;
+    height: 10px;
+    background: #333;
+    border-radius: 2px;
+    margin-bottom: 4px;
+}
+
+.layout-default .title:nth-child(5) {
+    width: 80%;
+}
+
+.layout-default .speakers {
+    width: 70%;
+    height: 6px;
+    background: #999;
+    border-radius: 1px;
+    margin-top: 8px;
+}
+
+.layout-minimal {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.layout-minimal .title {
+    width: 80%;
+    height: 12px;
+    background: #333;
+    border-radius: 2px;
+    margin: 4px 0;
+}
+
+.layout-minimal .title:nth-child(2) {
+    width: 60%;
+}
+
+.layout-minimal .event-name {
+    width: 50px;
+    height: 5px;
+    background: #1da1f2;
+    border-radius: 1px;
+    margin-top: 15px;
+}
+
+.layout-full {
+    display: flex;
+    padding: 8px;
+}
+
+.layout-full .left-column {
+    width: 80px;
+    border-right: 2px solid #1da1f2;
+    padding-right: 6px;
+    margin-right: 6px;
+}
+
+.layout-full .logo-area {
+    width: 60px;
+    height: 25px;
+    background: #e0e0e0;
+    border-radius: 2px;
+    margin: 0 auto 6px;
+}
+
+.layout-full .event-name {
+    width: 70px;
+    height: 5px;
+    background: #1da1f2;
+    border-radius: 1px;
+    margin: 0 auto 8px;
+}
+
+.layout-full .avatar {
+    width: 20px;
+    height: 20px;
+    background: #e0e0e0;
+    border-radius: 50%;
+    margin: 0 auto 4px;
+}
+
+.layout-full .speaker-name {
+    width: 60px;
+    height: 4px;
+    background: #999;
+    border-radius: 1px;
+    margin: 0 auto;
+}
+
+.layout-full .right-column {
+    flex: 1;
+    padding-top: 15px;
+}
+
+.layout-full .title {
+    width: 100%;
+    height: 9px;
+    background: #333;
+    border-radius: 2px;
+    margin-bottom: 3px;
+}
+
+.layout-full .title:nth-child(3) {
+    width: 70%;
+}
+
+.layout-full .meta {
+    width: 50%;
+    height: 5px;
+    background: #1da1f2;
+    border-radius: 1px;
+    margin-top: 6px;
+}
+</style>
+{% endblock extra_style %}
+
 {% block settings_content %}
     <h2>
         {% translate "Social Media Preview Images" %}
@@ -18,7 +188,7 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
         {% blocktranslate trimmed %}
             Configure how your event generates social media preview images (Open Graph and Twitter Cards)
             for submissions and speakers. These images will be generated on demand and cached until
-            the related data changes.
+            the related data changes. Images are 1200x630 pixels, optimized for social media sharing.
         {% endblocktranslate %}
     </div>
 
@@ -27,6 +197,55 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
 
         <h3>{% translate "Submission Preview Images" %}</h3>
         <p class="text-muted">{% translate "Settings for talk and session preview images." %}</p>
+
+        <div class="form-group">
+            <label class="col-md-3 control-label">{% translate "Layout Examples" %}</label>
+            <div class="col-md-9">
+                <div class="preview-layout-examples">
+                    <div style="display: inline-block; margin-right: 10px;">
+                        <div class="layout-example layout-default">
+                            <div class="accent-bar"></div>
+                            <div class="logo-area"></div>
+                            <div class="event-name"></div>
+                            <div class="title"></div>
+                            <div class="title"></div>
+                            <div class="title"></div>
+                            <div class="speakers"></div>
+                        </div>
+                        <div class="layout-example-label">{% translate "Default" %}</div>
+                    </div>
+                    <div style="display: inline-block; margin-right: 10px;">
+                        <div class="layout-example layout-minimal">
+                            <div class="title"></div>
+                            <div class="title"></div>
+                            <div class="title"></div>
+                            <div class="event-name"></div>
+                        </div>
+                        <div class="layout-example-label">{% translate "Minimal" %}</div>
+                    </div>
+                    <div style="display: inline-block;">
+                        <div class="layout-example layout-full">
+                            <div class="left-column">
+                                <div class="logo-area"></div>
+                                <div class="event-name"></div>
+                                <div class="avatar"></div>
+                                <div class="speaker-name"></div>
+                            </div>
+                            <div class="right-column">
+                                <div class="title"></div>
+                                <div class="title"></div>
+                                <div class="title"></div>
+                                <div class="meta"></div>
+                            </div>
+                        </div>
+                        <div class="layout-example-label">{% translate "Full" %}</div>
+                    </div>
+                </div>
+                <p class="help-block">
+                    {% translate "Schematic representation of each layout style (not to scale)" %}
+                </p>
+            </div>
+        </div>
 
         {% for field in form %}
             {% if "submission" in field.name %}
@@ -48,8 +267,58 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
             {% endif %}
         {% endfor %}
 
+        <hr style="margin: 30px 0;">
+
         <h3>{% translate "Speaker Preview Images" %}</h3>
         <p class="text-muted">{% translate "Settings for speaker profile preview images." %}</p>
+
+        <div class="form-group">
+            <label class="col-md-3 control-label">{% translate "Layout Examples" %}</label>
+            <div class="col-md-9">
+                <div class="preview-layout-examples">
+                    <div style="display: inline-block; margin-right: 10px;">
+                        <div class="layout-example layout-default">
+                            <div class="accent-bar"></div>
+                            <div class="logo-area"></div>
+                            <div class="event-name"></div>
+                            <div style="display: flex; align-items: center; margin-top: 12px;">
+                                <div style="width: 35px; height: 35px; background: #e0e0e0; border-radius: 50%; margin-right: 8px;"></div>
+                                <div>
+                                    <div style="width: 120px; height: 10px; background: #333; border-radius: 2px; margin-bottom: 3px;"></div>
+                                    <div style="width: 100px; height: 8px; background: #333; border-radius: 2px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="layout-example-label">{% translate "Default" %}</div>
+                    </div>
+                    <div style="display: inline-block; margin-right: 10px;">
+                        <div class="layout-example layout-minimal">
+                            <div style="width: 90px; height: 14px; background: #333; border-radius: 2px;"></div>
+                            <div class="event-name"></div>
+                        </div>
+                        <div class="layout-example-label">{% translate "Minimal" %}</div>
+                    </div>
+                    <div style="display: inline-block;">
+                        <div class="layout-example layout-default">
+                            <div class="accent-bar"></div>
+                            <div class="logo-area"></div>
+                            <div class="event-name"></div>
+                            <div style="display: flex; align-items: center; margin-top: 12px;">
+                                <div style="width: 35px; height: 35px; background: #e0e0e0; border-radius: 50%; margin-right: 8px;"></div>
+                                <div>
+                                    <div style="width: 120px; height: 10px; background: #333; border-radius: 2px; margin-bottom: 3px;"></div>
+                                    <div style="width: 100px; height: 8px; background: #333; border-radius: 2px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="layout-example-label">{% translate "Full" %}</div>
+                    </div>
+                </div>
+                <p class="help-block">
+                    {% translate "Schematic representation of each layout style (not to scale)" %}
+                </p>
+            </div>
+        </div>
 
         {% for field in form %}
             {% if "speaker" in field.name %}

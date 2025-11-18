@@ -286,8 +286,4 @@ class TalkSocialMediaCard(SocialMediaCardMixin, TalkView):
     def get_image(self):
         from pretalx.common.social_preview import generate_and_cache_submission_preview
 
-        preview = generate_and_cache_submission_preview(self.request.event, self.submission)
-        if preview:
-            return preview
-
-        return self.submission.image
+        return generate_and_cache_submission_preview(self.request.event, self.submission)

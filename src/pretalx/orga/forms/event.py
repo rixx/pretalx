@@ -1011,13 +1011,6 @@ SOCIAL_PREVIEW_LAYOUT_CHOICES = (
 class SocialPreviewSettingsForm(
     ReadOnlyFlag, PretalxI18nFormMixin, JsonSubfieldMixin, forms.Form
 ):
-    submission_enabled = forms.BooleanField(
-        label=_("Enable social preview images for submissions"),
-        required=False,
-        help_text=_(
-            "Generate custom social media preview images for talk/session pages."
-        ),
-    )
     submission_layout = forms.ChoiceField(
         label=_("Submission layout"),
         required=False,
@@ -1040,19 +1033,7 @@ class SocialPreviewSettingsForm(
         required=False,
         help_text=_("Include speaker names and avatars in submission preview images."),
     )
-    submission_show_submission_image = forms.BooleanField(
-        label=_("Show submission image"),
-        required=False,
-        help_text=_(
-            "Include the submission's custom image if available (may be overridden by layout)."
-        ),
-    )
 
-    speaker_enabled = forms.BooleanField(
-        label=_("Enable social preview images for speakers"),
-        required=False,
-        help_text=_("Generate custom social media preview images for speaker pages."),
-    )
     speaker_layout = forms.ChoiceField(
         label=_("Speaker layout"),
         required=False,
@@ -1084,13 +1065,10 @@ class SocialPreviewSettingsForm(
         model = Event
         fields = []
         json_fields = {
-            "submission_enabled": "social_preview_settings.submission.enabled",
             "submission_layout": "social_preview_settings.submission.layout",
             "submission_show_event_logo": "social_preview_settings.submission.show_event_logo",
             "submission_show_event_name": "social_preview_settings.submission.show_event_name",
             "submission_show_speaker_avatars": "social_preview_settings.submission.show_speaker_avatars",
-            "submission_show_submission_image": "social_preview_settings.submission.show_submission_image",
-            "speaker_enabled": "social_preview_settings.speaker.enabled",
             "speaker_layout": "social_preview_settings.speaker.layout",
             "speaker_show_event_logo": "social_preview_settings.speaker.show_event_logo",
             "speaker_show_event_name": "social_preview_settings.speaker.show_event_name",

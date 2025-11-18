@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
 
 import hashlib
+import logging
 import os
 from io import BytesIO
 from pathlib import Path
@@ -9,6 +10,8 @@ from pathlib import Path
 from django.conf import settings
 from django.core.files.storage import default_storage
 from PIL import Image, ImageDraw, ImageFont
+
+logger = logging.getLogger(__name__)
 
 
 # Social media image dimensions (optimized for Twitter/OG)
@@ -97,9 +100,6 @@ def generate_submission_preview(event, submission, settings_dict=None):
     if not settings_dict:
         settings_dict = event.social_preview_settings.get("submission", {})
 
-    if not settings_dict.get("enabled", True):
-        return None
-
     layout = settings_dict.get("layout", "default")
 
     if layout == "minimal":
@@ -114,9 +114,6 @@ def generate_speaker_preview(event, speaker, settings_dict=None):
     """Generate a social preview image for a speaker."""
     if not settings_dict:
         settings_dict = event.social_preview_settings.get("speaker", {})
-
-    if not settings_dict.get("enabled", True):
-        return None
 
     layout = settings_dict.get("layout", "default")
 
@@ -494,35 +491,43 @@ def invalidate_preview_cache(event, object_type, object_id):
 
 def generate_and_cache_submission_preview(event, submission):
     """Generate and cache a submission preview image."""
-    settings_dict = event.social_preview_settings.get("submission", {})
+    try:
+        settings_dict = event.social_preview_settings.get("submission", {})
 
-    if not settings_dict.get("enabled", True):
-        return None
+        cached = get_cached_preview(event, "submission", submission.code, settings_dict)
+        if cached:
+            return cached
 
-    cached = get_cached_preview(event, "submission", submission.code, settings_dict)
-    if cached:
-        return cached
-
-    img = generate_submission_preview(event, submission, settings_dict)
-    if img:
-        return save_preview_to_cache(img, event, "submission", submission.code, settings_dict)
+        img = generate_submission_preview(event, submission, settings_dict)
+        if img:
+            return save_preview_to_cache(img, event, "submission", submission.code, settings_dict)
+    except Exception as e:
+        logger.exception(
+            "Failed to generate social preview for submission %s in event %s",
+            submission.code,
+            event.slug
+        )
 
     return None
 
 
 def generate_and_cache_speaker_preview(event, speaker):
     """Generate and cache a speaker preview image."""
-    settings_dict = event.social_preview_settings.get("speaker", {})
+    try:
+        settings_dict = event.social_preview_settings.get("speaker", {})
 
-    if not settings_dict.get("enabled", True):
-        return None
+        cached = get_cached_preview(event, "speaker", speaker.code, settings_dict)
+        if cached:
+            return cached
 
-    cached = get_cached_preview(event, "speaker", speaker.code, settings_dict)
-    if cached:
-        return cached
-
-    img = generate_speaker_preview(event, speaker, settings_dict)
-    if img:
-        return save_preview_to_cache(img, event, "speaker", speaker.code, settings_dict)
+        img = generate_speaker_preview(event, speaker, settings_dict)
+        if img:
+            return save_preview_to_cache(img, event, "speaker", speaker.code, settings_dict)
+    except Exception as e:
+        logger.exception(
+            "Failed to generate social preview for speaker %s in event %s",
+            speaker.code,
+            event.slug
+        )
 
     return None
