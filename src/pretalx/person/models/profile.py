@@ -282,6 +282,5 @@ class SpeakerProfile(PretalxModel):
                 "name": self.get_display_name(),
                 "email": self.user.email if self.user else None,
                 "avatar": avatar.name if avatar else None,
-                "name_parts": self.name_parts,
             }
         return super()._get_instance_data() | data
