@@ -8,6 +8,10 @@ import pytest
 from django_scopes import scope
 
 from pretalx.common.forms.mixins import ALL_FILE_TYPES, QuestionFieldsMixin
+from pretalx.orga.forms.cfp import (
+    expand_file_type_groups,
+    get_selected_file_type_groups,
+)
 from pretalx.submission.models import Answer, Question
 
 
@@ -216,3 +220,51 @@ def test_question_file_field_uses_restricted_types(event):
         assert ".docx" in field.extensions
         assert ".png" not in field.extensions
         assert ".jpg" not in field.extensions
+
+
+@pytest.mark.parametrize(
+    "selected_groups,expected_extensions",
+    [
+        (["images"], [".bmp", ".gif", ".jpeg", ".jpg", ".png", ".svg", ".tif", ".tiff"]),
+        (["documents"], [".doc", ".docx", ".pdf", ".rtf", ".txt"]),
+        (["images:png"], [".png"]),
+        (["images:jpeg"], [".jpeg", ".jpg"]),
+        (["documents:word"], [".doc", ".docx"]),
+        (["images:png", "documents:pdf"], [".pdf", ".png"]),
+        (["images", "documents:pdf"], [".bmp", ".gif", ".jpeg", ".jpg", ".pdf", ".png", ".svg", ".tif", ".tiff"]),
+        ([], []),
+    ],
+)
+def test_expand_file_type_groups(selected_groups, expected_extensions):
+    """Test that file type groups expand correctly to extensions."""
+    result = expand_file_type_groups(selected_groups)
+    assert result == expected_extensions
+
+
+@pytest.mark.parametrize(
+    "extensions,expected_groups",
+    [
+        ([".png", ".jpg", ".jpeg", ".gif", ".svg", ".bmp", ".tif", ".tiff"], ["images"]),
+        ([".pdf", ".docx", ".doc", ".rtf", ".txt"], ["documents"]),
+        ([".png"], ["images:png"]),
+        ([".jpg", ".jpeg"], ["images:jpeg"]),
+        ([".docx", ".doc"], ["documents:word"]),
+        # spreadsheets and spreadsheets:excel have same extensions, parent group returned
+        ([".xlsx", ".xls"], ["spreadsheets"]),
+        # presentations and presentations:powerpoint have same extensions, parent group returned
+        ([".pptx", ".ppt"], ["presentations"]),
+        ([], []),
+    ],
+)
+def test_get_selected_file_type_groups(extensions, expected_groups):
+    """Test that extensions are correctly mapped back to their groups."""
+    result = get_selected_file_type_groups(extensions)
+    assert result == expected_groups
+
+
+def test_get_selected_file_type_groups_multiple_specific():
+    """Test that multiple specific types are returned when no group matches."""
+    extensions = [".png", ".pdf"]
+    result = get_selected_file_type_groups(extensions)
+    # Should return the most specific groups
+    assert set(result) == {"images:png", "documents:pdf"}

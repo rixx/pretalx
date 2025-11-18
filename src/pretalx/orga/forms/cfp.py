@@ -43,23 +43,141 @@ from pretalx.submission.models import (
 from pretalx.submission.models.cfp import CfP, default_fields
 from pretalx.submission.models.question import QuestionRequired
 
+# Mapping of grouped file types to their extensions
+FILE_TYPE_GROUPS = {
+    "images": [".png", ".jpg", ".jpeg", ".gif", ".svg", ".bmp", ".tif", ".tiff"],
+    "images:png": [".png"],
+    "images:jpeg": [".jpg", ".jpeg"],
+    "images:gif": [".gif"],
+    "images:svg": [".svg"],
+    "images:bmp": [".bmp"],
+    "images:tiff": [".tif", ".tiff"],
+    "documents": [".pdf", ".docx", ".doc", ".rtf", ".txt"],
+    "documents:pdf": [".pdf"],
+    "documents:word": [".docx", ".doc"],
+    "documents:rtf": [".rtf"],
+    "documents:txt": [".txt"],
+    "spreadsheets": [".xlsx", ".xls"],
+    "spreadsheets:excel": [".xlsx", ".xls"],
+    "presentations": [".pptx", ".ppt"],
+    "presentations:powerpoint": [".pptx", ".ppt"],
+}
+
+# Optgroup choices for the form
 FILE_TYPE_CHOICES = [
-    (".png", _("PNG images (.png)")),
-    (".jpg", _("JPEG images (.jpg, .jpeg)")),
-    (".gif", _("GIF images (.gif)")),
-    (".svg", _("SVG images (.svg)")),
-    (".bmp", _("BMP images (.bmp)")),
-    (".tif", _("TIFF images (.tif, .tiff)")),
-    (".pdf", _("PDF documents (.pdf)")),
-    (".txt", _("Text files (.txt)")),
-    (".docx", _("Word documents (.docx)")),
-    (".doc", _("Word documents legacy (.doc)")),
-    (".rtf", _("Rich text documents (.rtf)")),
-    (".pptx", _("PowerPoint presentations (.pptx)")),
-    (".ppt", _("PowerPoint presentations legacy (.ppt)")),
-    (".xlsx", _("Excel spreadsheets (.xlsx)")),
-    (".xls", _("Excel spreadsheets legacy (.xls)")),
+    (
+        _("Images"),
+        [
+            ("images", _("All image formats")),
+            ("images:png", _("PNG")),
+            ("images:jpeg", _("JPEG")),
+            ("images:gif", _("GIF")),
+            ("images:svg", _("SVG")),
+            ("images:bmp", _("BMP")),
+            ("images:tiff", _("TIFF")),
+        ],
+    ),
+    (
+        _("Documents"),
+        [
+            ("documents", _("All document formats")),
+            ("documents:pdf", _("PDF")),
+            ("documents:word", _("Word (DOCX/DOC)")),
+            ("documents:rtf", _("Rich Text Format")),
+            ("documents:txt", _("Plain text")),
+        ],
+    ),
+    (
+        _("Spreadsheets"),
+        [
+            ("spreadsheets", _("All spreadsheet formats")),
+            ("spreadsheets:excel", _("Excel (XLSX/XLS)")),
+        ],
+    ),
+    (
+        _("Presentations"),
+        [
+            ("presentations", _("All presentation formats")),
+            ("presentations:powerpoint", _("PowerPoint (PPTX/PPT)")),
+        ],
+    ),
 ]
+
+
+def expand_file_type_groups(selected_types: list[str]) -> list[str]:
+    """Expand grouped file type selections to individual extensions.
+
+    Takes a list of file type group keys (e.g., "images", "documents:word")
+    and returns a sorted list of all unique file extensions those groups represent.
+
+    Args:
+        selected_types: List of file type group keys to expand
+
+    Returns:
+        Sorted list of unique file extensions (e.g., [".doc", ".docx", ".png"])
+
+    Example:
+        >>> expand_file_type_groups(["images:png", "documents:pdf"])
+        [".pdf", ".png"]
+    """
+    extensions = set()
+    for type_key in selected_types:
+        if type_key in FILE_TYPE_GROUPS:
+            extensions.update(FILE_TYPE_GROUPS[type_key])
+    return sorted(list(extensions))
+
+
+def get_selected_file_type_groups(extensions: list[str]) -> list[str]:
+    """Determine which file type groups match the given extensions.
+
+    Analyzes a list of file extensions and returns the most appropriate
+    file type group keys that represent them. Prefers exact matches and
+    specific groups over general ones.
+
+    Args:
+        extensions: List of file extensions (e.g., [".png", ".jpg"])
+
+    Returns:
+        List of file type group keys that best match the extensions.
+        Returns the parent group if it exactly matches, otherwise returns
+        the most specific matching groups.
+
+    Example:
+        >>> get_selected_file_type_groups([".png"])
+        ["images:png"]
+        >>> get_selected_file_type_groups([".doc", ".docx"])
+        ["documents:word"]
+    """
+    if not extensions:
+        return []
+
+    extension_set = set(extensions)
+    selected_groups = []
+
+    # Check each group to see if it exactly matches the extensions
+    for group_key, group_extensions in FILE_TYPE_GROUPS.items():
+        if set(group_extensions) == extension_set:
+            # Found an exact match - return just this group
+            return [group_key]
+        elif set(group_extensions).issubset(extension_set):
+            # This group is fully contained in the extensions
+            selected_groups.append(group_key)
+
+    # Return the most specific groups (prefer specific over general)
+    # Filter out parent groups if all their specific children are selected
+    filtered_groups = []
+    for group_key in selected_groups:
+        # Don't include parent groups if we have more specific selections
+        if ":" in group_key:
+            filtered_groups.append(group_key)
+        else:
+            # Only include parent group if no specific children are in the list
+            prefix = group_key + ":"
+            has_children = any(g.startswith(prefix) for g in selected_groups)
+            if not has_children:
+                filtered_groups.append(group_key)
+
+    return filtered_groups or selected_groups
 
 
 class CfPSettingsForm(
@@ -231,6 +349,14 @@ class QuestionForm(ReadOnlyFlag, PretalxI18nModelForm):
     def __init__(self, *args, event=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["icon"].required = False
+
+        # Determine initial selection based on stored extensions
+        initial_groups = []
+        if self.instance.pk and self.instance.allowed_file_types:
+            initial_groups = get_selected_file_type_groups(
+                self.instance.allowed_file_types
+            )
+
         self.fields["allowed_file_types"] = forms.MultipleChoiceField(
             label=_("Allowed file types"),
             help_text=_(
@@ -238,9 +364,10 @@ class QuestionForm(ReadOnlyFlag, PretalxI18nModelForm):
             ),
             choices=FILE_TYPE_CHOICES,
             required=False,
-            widget=forms.CheckboxSelectMultiple,
-            initial=self.instance.allowed_file_types if self.instance.pk else [],
+            widget=EnhancedSelectMultiple,
+            initial=initial_groups,
         )
+
         if not (
             event.get_feature_flag("use_tracks")
             and event.tracks.all().count()
@@ -302,9 +429,12 @@ class QuestionForm(ReadOnlyFlag, PretalxI18nModelForm):
     def save(self, *args, **kwargs):
         instance = super().save(*args, **kwargs)
 
-        # Save allowed file types
-        allowed_file_types = self.cleaned_data.get("allowed_file_types", [])
-        instance.allowed_file_types = list(allowed_file_types)
+        # Expand selected file type groups to individual extensions
+        selected_groups = self.cleaned_data.get("allowed_file_types", [])
+        if selected_groups:
+            instance.allowed_file_types = expand_file_type_groups(selected_groups)
+        else:
+            instance.allowed_file_types = []
         instance.save()
 
         options = self.cleaned_data.get("options")
