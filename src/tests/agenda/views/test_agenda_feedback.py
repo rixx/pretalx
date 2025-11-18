@@ -69,7 +69,8 @@ def test_cannot_create_feedback_before_talk(
 
 @pytest.mark.django_db()
 def test_can_see_feedback(django_assert_num_queries, feedback, client):
-    speaker_user = feedback.talk.speaker_profiles.first().user
+    with scope(event=feedback.talk.event):
+        speaker_user = feedback.talk.speaker_profiles.first().user
     client.force_login(speaker_user)
     response = client.get(feedback.talk.urls.feedback)
     assert response.status_code == 200

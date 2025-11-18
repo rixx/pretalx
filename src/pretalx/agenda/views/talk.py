@@ -248,6 +248,8 @@ class FeedbackView(TalkMixin, FormView):
 
     @cached_property
     def is_speaker(self):
+        if not self.request.user.is_authenticated:
+            return False
         return self.talk.speaker_profiles.filter(user=self.request.user).exists()
 
     @cached_property

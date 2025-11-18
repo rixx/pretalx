@@ -84,8 +84,9 @@ class SpeakerView(PermissionRequired, TemplateView):
     @context
     @cached_property
     def talks(self):
+        from pretalx.schedule.models import TalkSlot
         if not self.request.event.current_schedule:
-            return []
+            return TalkSlot.objects.none()
         return (
             self.request.event.current_schedule.talks.filter(
                 submission__speaker_profiles__user__code=self.kwargs["code"], is_visible=True
@@ -93,7 +94,6 @@ class SpeakerView(PermissionRequired, TemplateView):
             .select_related(
                 "submission", "room", "submission__event", "submission__track"
             )
-            .prefetch_related("submission__speaker_profiles", "submission__speaker_profiles__user")
         )
 
     def get_permission_object(self):

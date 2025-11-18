@@ -172,7 +172,7 @@ def test_speaker_page(
         other_submission.slots.all().update(is_visible=True)
         slot.submission.slots.all().update(is_visible=True)
     url = reverse("agenda:speaker", kwargs={"code": speaker.code, "event": event.slug})
-    with django_assert_num_queries(22):
+    with django_assert_num_queries(20):
         response = client.get(url, follow=True)
     assert response.status_code == 200
     assert len(response.context["talks"]) == 2, response.context["talks"]

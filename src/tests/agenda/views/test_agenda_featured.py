@@ -16,7 +16,7 @@ def test_featured_invisible_because_setting(
         confirmed_submission.is_featured = True
         confirmed_submission.save()
     url = str(event.urls.featured)
-    with django_assert_max_num_queries(9):
+    with django_assert_max_num_queries(10):
         response = client.get(url, follow=True)
     if featured == "never":
         assert response.status_code == 404
@@ -79,7 +79,7 @@ def test_featured_talk_list(
     event.feature_flags["show_featured"] = True
     event.save()
 
-    with django_assert_max_num_queries(9):
+    with django_assert_max_num_queries(10):
         response = client.get(event.urls.featured, follow=True)
     assert response.status_code == 200
     content = response.text

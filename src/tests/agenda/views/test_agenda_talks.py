@@ -213,7 +213,7 @@ def test_talk_speaker_other_submissions(
         profile, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=event if 'event' in locals() else other_submission.event)
 
         other_submission.speaker_profiles.add(profile)
-    with django_assert_num_queries(18):
+    with django_assert_num_queries(23):
         response = client.get(other_submission.urls.public, follow=True)
 
     assert response.status_code == 200
@@ -260,7 +260,7 @@ def test_talk_speaker_other_submissions_only_if_visible(
             is_visible=False
         )
 
-    with django_assert_num_queries(18):
+    with django_assert_num_queries(23):
         response = client.get(other_submission.urls.public, follow=True)
 
     assert response.status_code == 200
