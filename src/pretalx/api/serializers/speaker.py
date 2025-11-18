@@ -27,10 +27,15 @@ from pretalx.submission.models import QuestionTarget
 @register_serializer(versions=CURRENT_VERSIONS)
 class SpeakerSerializer(FlexFieldsSerializerMixin, PretalxSerializer):
     code = CharField(source="user.code", read_only=True)
-    name = CharField(source="user.name")
+    name = SerializerMethodField()
     avatar_url = URLField(read_only=True)
     answers = SerializerMethodField()
     submissions = SerializerMethodField()
+
+    @extend_schema_field(str)
+    def get_name(self, obj):
+        """Return the display name from the speaker profile."""
+        return obj.get_display_name()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -135,14 +140,25 @@ class SpeakerOrgaSerializer(AvailabilitiesMixin, SpeakerSerializer):
 @register_serializer(versions=CURRENT_VERSIONS)
 class SpeakerUpdateSerializer(SpeakerOrgaSerializer):
     avatar = UploadedFileField(required=False, source="speaker.user")
+    name = CharField(required=False)  # Writable name field for updates
 
     def update(self, instance, validated_data):
         avatar = validated_data.pop("avatar", None)
+        name = validated_data.pop("name", None)
         user_fields = validated_data.pop("user", None) or {}
         instance = super().update(instance, validated_data)
+
+        # Handle name update - store in profile.name_parts
+        if name is not None:
+            instance.name_parts = {"_legacy": name}
+            instance.save(update_fields=["name_parts", "name"])
+
         for key, value in user_fields.items():
-            setattr(instance.user, key, value)
-            instance.user.save(update_fields=[key])
+            # Skip name on user - it's now on profile
+            if key != "name":
+                setattr(instance.user, key, value)
+                instance.user.save(update_fields=[key])
+
         if avatar:
             instance.avatar.save(Path(avatar.name).name, avatar, save=False)
             instance.save(update_fields=("avatar",))
