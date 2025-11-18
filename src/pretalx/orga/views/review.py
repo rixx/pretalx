@@ -360,7 +360,7 @@ class BulkReview(EventPermissionRequired, TemplateView):
     def submissions(self):
         submissions = get_reviewable_submissions(
             event=self.request.event, user=self.request.user
-        ).prefetch_related("speakers")
+        ).prefetch_related("speaker_profiles", "speaker_profiles__user")
         if self.filter_form.is_valid():
             submissions = self.filter_form.filter_queryset(submissions)
         return submissions
@@ -478,7 +478,7 @@ class BulkTagging(EventPermissionRequired, SubmissionListMixin, TemplateView):
         return (
             self._get_base_queryset()
             .select_related("submission_type", "track")
-            .prefetch_related("speakers", "tags")
+            .prefetch_related("speaker_profiles", "speaker_profiles__user", "tags")
         )
 
     @context
@@ -541,7 +541,7 @@ class ReviewViewMixin:
     @cached_property
     def submission(self):
         return get_object_or_404(
-            self.request.event.submissions.prefetch_related("speakers", "resources"),
+            self.request.event.submissions.prefetch_related("speaker_profiles", "speaker_profiles__user", "resources"),
             code__iexact=self.kwargs["code"],
         )
 
@@ -793,9 +793,9 @@ class RegenerateDecisionMails(
         return (
             self.request.event.submissions.filter(
                 state__in=[SubmissionStates.ACCEPTED, SubmissionStates.REJECTED],
-                speakers__isnull=False,
+                speaker_profiles__isnull=False,
             )
-            .prefetch_related("speakers")
+            .prefetch_related("speaker_profiles", "speaker_profiles__user")
             .distinct()
         )
 

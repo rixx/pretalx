@@ -81,7 +81,8 @@ class SubmissionViewMixin(PermissionRequired):
                 "event", "event__cfp", "submission_type", "track", "event__organiser"
             )
             .prefetch_related(
-                "speakers",
+                "speaker_profiles",
+                "speaker_profiles__user",
                 "tags",
                 "slots",
                 "answers",
@@ -144,7 +145,7 @@ class ReviewerSubmissionFilter:
                 "submission_type__event",
                 "submission_type__event__cfp",
             )
-            .prefetch_related("speakers")
+            .prefetch_related("speaker_profiles", "speaker_profiles__user")
         )
         if self.is_only_reviewer:
             queryset = limit_for_reviewers(
@@ -294,13 +295,13 @@ class SubmissionSpeakers(ReviewerSubmissionFilter, SubmissionViewMixin, FormView
         submission = self.object
         return [
             {
-                "user": speaker,
-                "profile": speaker.event_profile(submission.event),
-                "other_submissions": speaker.submissions.filter(
-                    event=submission.event
+                "user": profile.user,
+                "profile": profile,
+                "other_submissions": submission.event.submissions.filter(
+                    speaker_profiles=profile
                 ).exclude(code=submission.code),
             }
-            for speaker in submission.speaker_profiles.all()
+            for profile in submission.speaker_profiles.all()
         ]
 
     def form_valid(self, form):
@@ -580,7 +581,7 @@ class SubmissionListMixin(ReviewerSubmissionFilter, OrgaTableMixin):
         if self.request.user.has_perm(
             "person.orga_list_speakerprofile", self.request.event
         ):
-            default_filters.add("speakers__name__icontains")
+            default_filters.add("speaker_profiles__user__name__icontains")
         return default_filters
 
     def _get_base_queryset(self, for_review=False):

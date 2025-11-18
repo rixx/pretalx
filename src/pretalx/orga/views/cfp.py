@@ -581,7 +581,7 @@ class AccessCodeView(OrderActionMixin, OrgaCRUDView):
             context["submissions"] = (
                 self.object.submissions.all()
                 .exclude(state__in=[SubmissionStates.DRAFT, SubmissionStates.DELETED])
-                .prefetch_related("speakers")
+                .prefetch_related("speaker_profiles", "speaker_profiles__user")
             )
         return context
 
