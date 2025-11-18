@@ -6,7 +6,10 @@ from django_scopes import scope
 
 from pretalx.common.templatetags.copyable import copyable
 from pretalx.common.templatetags.html_signal import html_signal
-from pretalx.common.templatetags.rich_text import render_markdown_abslinks, rich_text
+from pretalx.common.templatetags.rich_text import (
+    render_markdown_abslinks,
+    rich_text,
+)
 from pretalx.common.templatetags.times import times
 from pretalx.common.templatetags.xmlescape import xmlescape
 
@@ -120,7 +123,7 @@ class FakeRequest:
 
 
 def test_email_markdown_no_line_breaks():
-    """Test that email markdown rendering doesn't convert single line breaks to <br> tags."""
+    """Test email markdown doesn't convert single line breaks to <br>."""
     text = "Line one\nLine two\n\nParagraph two"
     result = render_markdown_abslinks(text)
     # Single line breaks should not produce <br> tags in email rendering
@@ -130,8 +133,76 @@ def test_email_markdown_no_line_breaks():
 
 
 def test_web_markdown_has_line_breaks():
-    """Test that web markdown rendering does convert single line breaks to <br> tags."""
+    """Test web markdown converts single line breaks to <br> tags."""
     text = "Line one\nLine two"
     result = rich_text(text)
     # Web rendering should convert single line breaks to <br> tags
     assert "<br" in result
+
+
+def test_email_markdown_preserves_formatting():
+    """Test email markdown preserves bold, italic, and formatting."""
+    text = "**bold** and *italic* and ~~strikethrough~~"
+    result = render_markdown_abslinks(text)
+    assert "<strong>bold</strong>" in result
+    assert "<em>italic</em>" in result
+    assert "<del>strikethrough</del>" in result
+
+
+def test_email_markdown_lists():
+    """Test email markdown handles lists correctly."""
+    text = (
+        "Items:\n\n- First item\n- Second item\n\n"
+        "1. Numbered one\n2. Numbered two"
+    )
+    result = render_markdown_abslinks(text)
+    assert "<ul>" in result
+    assert "<li>First item</li>" in result
+    assert "<ol>" in result
+    assert "<li>Numbered one</li>" in result
+
+
+def test_email_markdown_links():
+    """Test email markdown creates absolute links (no redirects)."""
+    text = "Visit https://example.com for more info"
+    result = render_markdown_abslinks(text)
+    # Should create a link
+    assert "<a" in result
+    assert "https://example.com" in result
+    # Should NOT use safelink redirect
+    assert "/redirect/" not in result
+
+
+def test_email_markdown_code_blocks():
+    """Test that email markdown handles code blocks."""
+    text = "Example:\n\n```\ncode here\n```"
+    result = render_markdown_abslinks(text)
+    assert "<pre>" in result or "<code>" in result
+
+
+def test_email_markdown_empty_text():
+    """Test that email markdown handles empty text gracefully."""
+    assert render_markdown_abslinks("") == ""
+    assert render_markdown_abslinks(None) == ""
+
+
+def test_email_markdown_multiple_paragraphs():
+    """Test that email markdown creates separate paragraphs correctly."""
+    text = "First paragraph.\n\nSecond paragraph.\n\nThird paragraph."
+    result = render_markdown_abslinks(text)
+    # Should have 3 paragraphs
+    assert result.count("<p>") == 3
+    # But no <br> tags for single line breaks within paragraphs
+    assert "<br" not in result
+
+
+def test_rich_text_abslinks_filter():
+    """Test the rich_text_abslinks template filter directly."""
+    from pretalx.common.templatetags.rich_text import rich_text_abslinks
+
+    text = "Line one\nLine two\n\nhttps://example.com"
+    result = rich_text_abslinks(text)
+    # Should not have <br> tags
+    assert "<br" not in result
+    # Should have absolute link
+    assert "https://example.com" in result

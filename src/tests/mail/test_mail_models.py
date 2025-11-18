@@ -97,3 +97,33 @@ def test_mail_prefixed_subject(event, text, prefix, expected):
         event.mail_settings["subject_prefix"] = prefix
         event.save()
     assert QueuedMail(text=text, subject=text, event=event).prefixed_subject == expected
+
+
+@pytest.mark.django_db
+def test_mail_make_html_no_line_breaks(event):
+    """Test make_html doesn't convert single line breaks to <br>."""
+    text = "Line one\nLine two\n\nParagraph two with **bold** text"
+    mail = QueuedMail(text=text, subject="Test", event=event)
+    html = mail.make_html()
+    # Extract the content div to check just the rendered markdown
+    content_start = html.find('<div class="content">')
+    content_end = html.find("</div>", content_start)
+    content = html[content_start:content_end]
+    # Should not have <br> tags in the content (single line breaks)
+    assert "<br" not in content
+    # Should have bold formatting
+    assert "<strong>bold</strong>" in content
+    # Should have multiple paragraphs
+    assert content.count("<p>") >= 2
+
+
+@pytest.mark.django_db
+def test_mail_make_html_with_links(event):
+    """Test make_html creates absolute links (no redirects)."""
+    text = "Visit https://example.com for more information"
+    mail = QueuedMail(text=text, subject="Test", event=event)
+    html = mail.make_html()
+    # Should have the link
+    assert "https://example.com" in html
+    # Should NOT use safelink redirect in emails
+    assert "/redirect/" not in html

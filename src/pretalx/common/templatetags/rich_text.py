@@ -188,8 +188,11 @@ def render_markdown(text: str, cleaner=CLEANER) -> str:
 
 
 def render_markdown_abslinks(text: str) -> str:
-    """Process markdown and cleans HTML in a text input, but use absolute links instead
-    of safelink redirects. Uses md_email instance without nl2br extension."""
+    """Process markdown and clean HTML, using absolute links.
+
+    Uses md_email instance without nl2br extension to avoid
+    converting single line breaks to <br> tags in emails.
+    """
     if not text:
         return ""
     body_md = ABSLINK_CLEANER.clean(md_email.reset().convert(str(text)))
