@@ -1266,7 +1266,10 @@ def test_orga_can_add_speaker_to_submission(
     client, orga_user_write_token, submission, speaker
 ):
     with scope(event=submission.event):
-        submission.speakers.remove(speaker)
+        # Remove the speaker profile
+        profile = submission.speaker_profiles.filter(user=speaker).first()
+        if profile:
+            submission.speaker_profiles.remove(profile)
         assert speaker not in submission.speakers.all()
     response = client.post(
         submission.event.api_urls.submissions + f"{submission.code}/add-speaker/",
@@ -1293,7 +1296,10 @@ def test_orga_cannot_add_speaker_to_submission_readonly_token(
     client, orga_user_token, submission, speaker
 ):
     with scope(event=submission.event):
-        submission.speakers.remove(speaker)
+        # Remove the speaker profile
+        profile = submission.speaker_profiles.filter(user=speaker).first()
+        if profile:
+            submission.speaker_profiles.remove(profile)
         assert speaker not in submission.speakers.all()
     response = client.post(
         submission.event.api_urls.submissions + f"{submission.code}/add-speaker/",
@@ -1324,7 +1330,7 @@ def test_orga_can_remove_speaker_from_submission(
 
         from pretalx.person.models import SpeakerProfile
 
-        profile, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=event if 'event' in locals() else submission.event)
+        profile, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=submission.event)
 
         submission.speaker_profiles.add(profile)
     assert speaker in submission.speakers.all()
@@ -1357,7 +1363,7 @@ def test_orga_cannot_remove_speaker_from_submission_readonly_token(
 
         from pretalx.person.models import SpeakerProfile
 
-        profile, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=event if 'event' in locals() else submission.event)
+        profile, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=submission.event)
 
         submission.speaker_profiles.add(profile)
     response = client.post(

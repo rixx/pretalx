@@ -328,7 +328,9 @@ def test_speaker_list_multiple_talks_not_duplicated(client, event, slot, other_s
         submission = slot.submission
         speaker = submission.speakers.first()
         other_submission = other_slot.submission
-        other_submission.speakers.set([speaker])
+        # Get the speaker's profile and add it to the other submission
+        profile = submission.speaker_profiles.filter(user=speaker).first()
+        other_submission.speaker_profiles.set([profile])
         other_submission.save()
 
     response = client.get(event.api_urls.speakers, follow=True)
@@ -586,7 +588,7 @@ def test_speaker_retrieve_answers_scoped_to_event(
 
         from pretalx.person.models import SpeakerProfile
 
-        profile, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=event if 'event' in locals() else sub2.event)
+        profile, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=sub2.event)
 
         sub2.speaker_profiles.add(profile)
         sub2.save()
@@ -598,7 +600,7 @@ def test_speaker_retrieve_answers_scoped_to_event(
             active=True,
         )
         answer2 = Answer.objects.create(
-            answer="Answer 2", question=question2, speaker_profile=speaker.event_profile(event)
+            answer="Answer 2", question=question2, speaker_profile=speaker.event_profile(other_event)
         )
         team = other_event.teams.first()
         team.members.add(orga_user)
