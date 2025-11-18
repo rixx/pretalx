@@ -558,6 +558,8 @@ class SubmissionChangeRequestView(LoggedInEventPageMixin, SubmissionViewMixin, U
 
     @transaction.atomic
     def form_valid(self, form):
+        from pretalx.common.text.serialize import json_roundtrip
+
         comment = self.request.POST.get("change_request_comment", "")
         had_change_request = self.object.has_change_request
 
@@ -567,7 +569,10 @@ class SubmissionChangeRequestView(LoggedInEventPageMixin, SubmissionViewMixin, U
 
         for field in form.fields:
             if field in form.cleaned_data:
-                new_submission_data[field] = form.cleaned_data[field]
+                value = form.cleaned_data[field]
+                if hasattr(value, "pk"):
+                    value = value.pk
+                new_submission_data[field] = value
 
         if self.qform.is_valid():
             new_questions_data = self.qform.serialize_answers() or {}
@@ -589,10 +594,10 @@ class SubmissionChangeRequestView(LoggedInEventPageMixin, SubmissionViewMixin, U
             messages.info(self.request, _("No changes were detected."))
             return redirect(self.object.urls.user_base)
 
-        self.object.change_request = {
+        self.object.change_request = json_roundtrip({
             "changes": changes,
             "comment": comment,
-        }
+        })
         self.object.save()
 
         action = "pretalx.submission.change_request.update" if had_change_request else "pretalx.submission.change_request.create"

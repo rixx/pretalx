@@ -1,3 +1,4 @@
+import pytest
 
 
 @pytest.mark.django_db
@@ -20,6 +21,8 @@ def test_speaker_change_request_view_editable(client, submission):
 def test_speaker_change_request_view_get(client, submission):
     submission.state = "accepted"
     submission.event.active_review_phase = None
+    submission.event.feature_flags["speakers_can_edit_submissions"] = False
+    submission.event.save()
     submission.save()
     client.force_login(submission.speakers.first())
     response = client.get(submission.urls.request_changes)
@@ -30,6 +33,8 @@ def test_speaker_change_request_view_get(client, submission):
 def test_speaker_change_request_submit(client, submission):
     submission.state = "accepted"
     submission.event.active_review_phase = None
+    submission.event.feature_flags["speakers_can_edit_submissions"] = False
+    submission.event.save()
     submission.save()
     speaker = submission.speakers.first()
     client.force_login(speaker)
@@ -37,6 +42,10 @@ def test_speaker_change_request_submit(client, submission):
         submission.urls.request_changes,
         {
             "title": "New Title",
+            "abstract": submission.abstract,
+            "description": submission.description,
+            "submission_type": submission.submission_type.pk,
+            "content_locale": submission.content_locale,
             "change_request_comment": "Please update the title",
         },
         follow=True,
@@ -51,11 +60,19 @@ def test_speaker_change_request_submit(client, submission):
 def test_speaker_change_request_no_changes(client, submission):
     submission.state = "accepted"
     submission.event.active_review_phase = None
+    submission.event.feature_flags["speakers_can_edit_submissions"] = False
+    submission.event.save()
     submission.save()
     client.force_login(submission.speakers.first())
     response = client.post(
         submission.urls.request_changes,
-        {"title": submission.title},
+        {
+            "title": submission.title,
+            "abstract": submission.abstract,
+            "description": submission.description,
+            "submission_type": submission.submission_type.pk,
+            "content_locale": submission.content_locale,
+        },
         follow=True,
     )
     submission.refresh_from_db()
