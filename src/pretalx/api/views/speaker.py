@@ -95,7 +95,7 @@ class SpeakerViewSet(
             return (
                 SpeakerProfile.objects.filter(
                     event=self.event,
-                    user__submissions__pk__in=self.event.current_schedule.talks.all().values_list(
+                    submissions__pk__in=self.event.current_schedule.talks.all().values_list(
                         "submission_id", flat=True
                     ),
                 )
@@ -154,7 +154,7 @@ class SpeakerViewSet(
                 self.event, self.request.user, submissions=self.submissions_for_user
             )
             .select_related("user", "event")
-            .prefetch_related("user__submissions", "user__answers")
+            .prefetch_related("submissions", "answers")
             .order_by("user__code")
         )
         if fields := self.check_expanded_fields(
@@ -165,6 +165,6 @@ class SpeakerViewSet(
             "submissions.track",
             "submissions.submission_type",
         ):
-            prefetches = [f"user__{field.replace('.', '__')}" for field in fields]
+            prefetches = [field.replace(".", "__") for field in fields]
             queryset = queryset.prefetch_related(*prefetches)
         return queryset
