@@ -136,7 +136,8 @@ class ReviewDashboard(
             )
 
         queryset = queryset.select_related("track", "submission_type").prefetch_related(
-            "speakers",
+            "speaker_profiles",
+            "speaker_profiles__user",
             "reviews",
             "reviews__user",
             "reviews__scores",
@@ -565,7 +566,7 @@ class ReviewViewMixin:
     @context
     @cached_property
     def read_only(self):
-        if self.request.user in self.submission.speaker_profiles.all():
+        if self.submission.speaker_profiles.filter(user=self.request.user).exists():
             return True
         if self.object and self.object.pk:
             return not self.request.user.has_perm(
