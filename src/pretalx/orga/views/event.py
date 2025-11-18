@@ -685,6 +685,10 @@ class EventWizard(PermissionRequired, SensibleBackWizardMixin, SessionWizardView
         if step != "initial":
             fdata = self.get_cleaned_data_for_step("initial")
             kwargs.update(fdata or {})
+        if step == "plugins":
+            copy_data = self.get_cleaned_data_for_step("copy")
+            if copy_data:
+                kwargs["copy_from_event"] = copy_data.get("copy_from_event")
         return kwargs
 
     @transaction.atomic()

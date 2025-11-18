@@ -333,9 +333,13 @@ class EventWizardCopyForm(forms.Form):
 
 
 class EventWizardPluginsForm(forms.Form):
-    def __init__(self, *args, user=None, locales=None, organiser=None, **kwargs):
+    def __init__(self, *args, user=None, locales=None, organiser=None, copy_from_event=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.grouped_plugins = get_all_plugins_grouped(event=None, filter_visible=True)
+
+        copied_plugins = []
+        if copy_from_event:
+            copied_plugins = copy_from_event.plugin_list
 
         for category, plugins in self.grouped_plugins.items():
             for plugin in plugins:
@@ -344,6 +348,7 @@ class EventWizardPluginsForm(forms.Form):
                     label=plugin.name,
                     required=False,
                     help_text=getattr(plugin, "description", ""),
+                    initial=plugin.module in copied_plugins,
                 )
                 self.fields[field_name].plugin_module = plugin.module
                 self.fields[field_name].plugin_category = category[0]
