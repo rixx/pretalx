@@ -429,6 +429,46 @@ def test_list_slots_anonymous_schedule_public_only_visible(
 
 
 @pytest.mark.django_db
+def test_list_slots_anonymous_blockers_not_visible(
+    client, event, slot, break_slot, blocker_slot, room
+):
+    """Test that blocker sessions are not visible to anonymous users in public API."""
+    with scope(event=event):
+        # Ensure break and blocker are in the current schedule and have proper visibility
+        current_break = event.current_schedule.talks.filter(
+            submission__isnull=True, is_blocker=False
+        ).first()
+        current_blocker = event.current_schedule.talks.filter(
+            submission__isnull=True, is_blocker=True
+        ).first()
+
+        # Break should be visible, blocker should not
+        assert current_break is not None
+        assert current_break.is_visible is True
+        assert current_blocker is not None
+        assert current_blocker.is_visible is False
+
+    response = client.get(event.api_urls.slots, follow=True)
+    content = json.loads(response.text)
+    assert response.status_code == 200
+
+    # Get all slot IDs from the response
+    slot_ids_in_response = {r["id"] for r in content["results"]}
+
+    with scope(event=event):
+        current_slot_pk = event.current_schedule.talks.get(
+            submission=slot.submission
+        ).pk
+        current_break_pk = current_break.pk
+        current_blocker_pk = current_blocker.pk
+
+    # Verify: visible talk and break are in response, blocker is not
+    assert current_slot_pk in slot_ids_in_response
+    assert current_break_pk in slot_ids_in_response
+    assert current_blocker_pk not in slot_ids_in_response
+
+
+@pytest.mark.django_db
 def test_list_slots_orga_sees_slots_in_current_schedule_by_default(
     client, orga_user_token, event, slot, invisible_slot
 ):

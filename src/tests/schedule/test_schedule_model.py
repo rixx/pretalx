@@ -163,6 +163,64 @@ def test_scheduled_talks(slot, break_slot, room):
 
 
 @pytest.mark.django_db
+def test_blocker_visibility_on_release(slot, break_slot, blocker_slot, room):
+    """Test that blocker sessions remain invisible when schedule is released."""
+    with scope(event=slot.submission.event):
+        # Verify initial state
+        assert break_slot.is_blocker is False
+        assert blocker_slot.is_blocker is True
+
+        # Schedule the slots in wip schedule
+        current_slot = slot.submission.slots.filter(
+            schedule__version__isnull=True, submission__isnull=False
+        ).first()
+        current_slot.room = slot.room
+        current_slot.start = now()
+        current_slot.save()
+
+        # Get wip break and blocker
+        wip_break = break_slot.schedule.event.wip_schedule.talks.filter(
+            submission__isnull=True, is_blocker=False
+        ).first()
+        wip_blocker = blocker_slot.schedule.event.wip_schedule.talks.filter(
+            submission__isnull=True, is_blocker=True
+        ).first()
+
+        # Ensure they're scheduled
+        wip_break.room = room
+        wip_break.start = now()
+        wip_break.save()
+        wip_blocker.room = room
+        wip_blocker.start = now()
+        wip_blocker.save()
+
+        # Freeze the schedule
+        old_schedule, new_schedule = current_slot.schedule.freeze("test-version")
+
+        # After release:
+        # 1. Regular breaks should be visible
+        released_break = old_schedule.talks.filter(
+            submission__isnull=True, is_blocker=False
+        ).first()
+        assert released_break is not None
+        assert released_break.is_visible is True
+
+        # 2. Blocker sessions should NOT be visible
+        released_blocker = old_schedule.talks.filter(
+            submission__isnull=True, is_blocker=True
+        ).first()
+        assert released_blocker is not None
+        assert released_blocker.is_visible is False
+
+        # 3. Confirmed talks should be visible
+        released_talk = old_schedule.talks.filter(
+            submission__isnull=False, submission__state="confirmed"
+        ).first()
+        assert released_talk is not None
+        assert released_talk.is_visible is True
+
+
+@pytest.mark.django_db
 def test_is_archived(event, break_slot):
     with scope(event=event):
         event.release_schedule(name="v1")

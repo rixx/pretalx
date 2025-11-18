@@ -46,6 +46,38 @@ def test_talk_schedule_api_create_break(orga_client, event, schedule, room):
         assert slot.duration == 50
 
 
+@pytest.mark.django_db
+def test_talk_schedule_api_create_blocker(orga_client, event, schedule, room):
+    """Test that blocker sessions can be created via the API."""
+    with scope(event=event):
+        slot_count = event.wip_schedule.talks.count()
+    response = orga_client.post(
+        reverse("orga:schedule.api.talks", kwargs={"event": event.slug}),
+        json.dumps({
+            "room": room.pk,
+            "duration": 30,
+            "title": "Blocker Session",
+            "is_blocker": True,
+        }),
+        content_type="application/json",
+        follow=True,
+    )
+    assert response.status_code == 200
+    content = json.loads(response.text)
+    assert content["is_blocker"] is True
+
+    with scope(event=event):
+        assert event.wip_schedule.talks.count() == slot_count + 1
+        slot = event.wip_schedule.talks.filter(
+            submission__isnull=True, is_blocker=True
+        ).first()
+        assert slot is not None
+        assert slot.description == "Blocker Session"
+        assert slot.room == room
+        assert slot.duration == 30
+        assert slot.is_blocker is True
+
+
 @pytest.mark.parametrize("with_room", (True, False))
 @pytest.mark.django_db
 def test_talk_schedule_api_update(orga_client, event, schedule, slot, room, with_room):
@@ -148,6 +180,44 @@ def test_talk_schedule_api_update_break_slot_explicit_end(
         assert str(slot.description) == "New break"
         assert slot.start == start
         assert slot.room == room
+
+
+@pytest.mark.django_db
+def test_talk_schedule_api_update_blocker_slot(
+    orga_client, event, schedule, blocker_slot, room
+):
+    """Test that blocker sessions can be updated via the API."""
+    with scope(event=event):
+        slot = event.wip_schedule.talks.filter(is_blocker=True).first()
+        start = now()
+        assert slot.start != start
+        assert slot.is_blocker is True
+    response = orga_client.patch(
+        reverse(
+            "orga:schedule.api.update", kwargs={"event": event.slug, "pk": slot.pk}
+        ),
+        data=json.dumps(
+            {
+                "room": room.pk,
+                "start": start.isoformat(),
+                "duration": 60,
+                "title": "Updated blocker",
+                "is_blocker": True,
+            }
+        ),
+        follow=True,
+    )
+    assert response.status_code == 200
+    content = json.loads(response.text)
+    assert content["is_blocker"] is True
+
+    with scope(event=event):
+        slot.refresh_from_db()
+        assert slot.duration == 60
+        assert str(slot.description) == "Updated blocker"
+        assert slot.start == start
+        assert slot.room == room
+        assert slot.is_blocker is True
 
 
 @pytest.mark.django_db

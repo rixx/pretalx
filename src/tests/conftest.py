@@ -1056,10 +1056,33 @@ def break_slot(room, schedule):
             schedule=schedule,
             is_visible=True,
         )
-        slots = TalkSlot.objects.filter(submission__isnull=True)
+        slots = TalkSlot.objects.filter(submission__isnull=True, is_blocker=False)
         slots.update(
             start=room.event.datetime_from + dt.timedelta(minutes=90),
             end=room.event.datetime_from + dt.timedelta(minutes=120),
+            room=room,
+        )
+        return slot
+
+
+@pytest.fixture
+def blocker_slot(room, schedule):
+    with scope(event=schedule.event):
+        TalkSlot.objects.create(
+            description="Blocker",
+            schedule=schedule.event.wip_schedule,
+            is_blocker=True,
+        )
+        slot = TalkSlot.objects.create(
+            description="Blocker",
+            schedule=schedule,
+            is_blocker=True,
+            is_visible=False,
+        )
+        slots = TalkSlot.objects.filter(submission__isnull=True, is_blocker=True)
+        slots.update(
+            start=room.event.datetime_from + dt.timedelta(minutes=180),
+            end=room.event.datetime_from + dt.timedelta(minutes=210),
             room=room,
         )
         return slot
