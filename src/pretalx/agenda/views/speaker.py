@@ -47,7 +47,7 @@ class SpeakerList(EventPermissionRequired, Filterable, ListView):
         qs = self.filter_queryset(qs)
 
         speaker_mapping = defaultdict(list)
-        for talk in self.request.event.talks.all().prefetch_related("speakers"):
+        for talk in self.request.event.talks.all().prefetch_related("speaker_profiles", "speaker_profiles__user"):
             for speaker in talk.speaker_profiles.all():
                 speaker_mapping[speaker.code].append(talk)
 
@@ -94,7 +94,7 @@ class SpeakerView(PermissionRequired, TemplateView):
         context = super().get_context_data(**kwargs)
         speaker = self.profile.user
         answers = (
-            speaker.answers.filter(
+            self.profile.answers.filter(
                 question__is_public=True,
                 question__event=self.request.event,
                 question__target=QuestionTarget.SPEAKER,
