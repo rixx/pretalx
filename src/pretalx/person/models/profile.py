@@ -129,6 +129,11 @@ class SpeakerProfile(PretalxModel):
         return self.user.guid
 
     @cached_property
+    def name(self):
+        """Backwards compatibility property to access user name."""
+        return self.user.name if self.user else None
+
+    @cached_property
     def submissions(self):
         """All non-deleted.
 
