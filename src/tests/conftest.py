@@ -803,7 +803,8 @@ def submission(submission_data, speaker, event):
     with scope(event=event):
         sub = Submission.objects.create(**submission_data)
         sub.save()
-        sub.speakers.add(speaker)
+        profile, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=event)
+        sub.speaker_profiles.add(profile)
         return sub
 
 
@@ -820,7 +821,8 @@ def other_submission(event, other_speaker):
             content_locale="en",
         )
         sub.save()
-        sub.speakers.add(other_speaker)
+        profile, _ = SpeakerProfile.objects.get_or_create(user=other_speaker, event=event)
+        sub.speaker_profiles.add(profile)
         return sub
 
 
@@ -829,7 +831,9 @@ def accepted_submission(speaker, submission_data, event):
     with scope(event=event):
         sub = Submission.objects.create(**submission_data)
         sub.save()
-        sub.speakers.add(speaker)
+        profile, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=event)
+
+        sub.speaker_profiles.add(profile)
         sub.accept()
         return sub
 
@@ -846,7 +850,9 @@ def rejected_submission(submission_data, other_speaker, event):
     with scope(event=event):
         sub = Submission.objects.create(**submission_data)
         sub.save()
-        sub.speakers.add(other_speaker)
+        profile, _ = SpeakerProfile.objects.get_or_create(user=other_speaker, event=event)
+
+        sub.speaker_profiles.add(profile)
         sub.reject()
         return sub
 
@@ -856,7 +862,9 @@ def confirmed_submission(submission_data, speaker, event):
     with scope(event=event):
         sub = Submission.objects.create(**submission_data)
         sub.save()
-        sub.speakers.add(speaker)
+        profile, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=event)
+
+        sub.speaker_profiles.add(profile)
         sub.accept()
         sub.confirm()
         return sub
@@ -874,7 +882,9 @@ def canceled_submission(submission_data, speaker, event):
     with scope(event=event):
         sub = Submission.objects.create(**submission_data)
         sub.save()
-        sub.speakers.add(speaker)
+        profile, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=event)
+
+        sub.speaker_profiles.add(profile)
         sub.cancel(force=True)
         return sub
 
@@ -884,7 +894,9 @@ def withdrawn_submission(submission_data, speaker, event):
     with scope(event=event):
         sub = Submission.objects.create(**submission_data)
         sub.save()
-        sub.speakers.add(speaker)
+        profile, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=event)
+
+        sub.speaker_profiles.add(profile)
         sub.withdraw(force=True)
         return sub
 
@@ -893,7 +905,9 @@ def withdrawn_submission(submission_data, speaker, event):
 def deleted_submission(event, submission_data, other_speaker):
     with scope(event=event):
         sub = Submission.objects.create(**submission_data)
-        sub.speakers.add(other_speaker)
+        profile, _ = SpeakerProfile.objects.get_or_create(user=other_speaker, event=event)
+
+        sub.speaker_profiles.add(profile)
         sub.remove(force=True)
         return sub
 

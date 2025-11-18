@@ -1320,7 +1320,13 @@ def test_orga_can_remove_speaker_from_submission(
     client, orga_user_write_token, submission, speaker
 ):
     with scope(event=submission.event):
-        submission.speakers.add(speaker)
+        # Add speaker profile
+
+        from pretalx.person.models import SpeakerProfile
+
+        profile, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=event if 'event' in locals() else submission.event)
+
+        submission.speaker_profiles.add(profile)
     assert speaker in submission.speakers.all()
     response = client.post(
         submission.event.api_urls.submissions + f"{submission.code}/remove-speaker/",
@@ -1347,7 +1353,13 @@ def test_orga_cannot_remove_speaker_from_submission_readonly_token(
     client, orga_user_token, submission, speaker
 ):
     with scope(event=submission.event):
-        submission.speakers.add(speaker)
+        # Add speaker profile
+
+        from pretalx.person.models import SpeakerProfile
+
+        profile, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=event if 'event' in locals() else submission.event)
+
+        submission.speaker_profiles.add(profile)
     response = client.post(
         submission.event.api_urls.submissions + f"{submission.code}/remove-speaker/",
         follow=True,

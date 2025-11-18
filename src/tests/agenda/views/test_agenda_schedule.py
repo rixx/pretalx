@@ -159,7 +159,13 @@ def test_speaker_page(
     client, django_assert_num_queries, event, speaker, slot, other_submission
 ):
     with scope(event=event):
-        other_submission.speakers.add(speaker)
+        # Add speaker profile
+
+        from pretalx.person.models import SpeakerProfile
+
+        profile, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=event if 'event' in locals() else other_submission.event)
+
+        other_submission.speaker_profiles.add(profile)
         slot.submission.accept(force=True)
         slot.submission.save()
         event.wip_schedule.freeze("testversion 2")
@@ -182,7 +188,13 @@ def test_speaker_page_other_submissions_only_if_visible(
     client, django_assert_num_queries, event, speaker, slot, other_submission
 ):
     with scope(event=event):
-        other_submission.speakers.add(speaker)
+        # Add speaker profile
+
+        from pretalx.person.models import SpeakerProfile
+
+        profile, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=event if 'event' in locals() else other_submission.event)
+
+        other_submission.speaker_profiles.add(profile)
         slot.submission.accept(force=True)
         slot.submission.save()
         event.wip_schedule.freeze("testversion 2")

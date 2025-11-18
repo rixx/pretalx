@@ -75,8 +75,24 @@ def use_tracks(user, obj):
 
 @rules.predicate
 def is_speaker(user, obj):
+    from pretalx.event.models import Event
+    from pretalx.submission.models import Submission
+
+    # If obj has a submission attribute, use it
     obj = getattr(obj, "submission", obj)
-    return obj and user in obj.speaker_profiles.all()
+
+    if not obj:
+        return False
+
+    # Handle Submission objects
+    if isinstance(obj, Submission):
+        return obj.speaker_profiles.filter(user=user).exists()
+
+    # Handle Event objects - check if user has any submissions in this event
+    if isinstance(obj, Event):
+        return obj.submissions.filter(speaker_profiles__user=user).exists()
+
+    return False
 
 
 @rules.predicate

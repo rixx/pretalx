@@ -308,7 +308,13 @@ def test_reviewer_cannot_create_review_for_own_submission(
     client, review_user_token, event, submission, review_user
 ):
     with scope(event=event):
-        submission.speakers.add(review_user)
+        # Add speaker profile
+
+        from pretalx.person.models import SpeakerProfile
+
+        profile, _ = SpeakerProfile.objects.get_or_create(user=review_user, event=event if 'event' in locals() else submission.event)
+
+        submission.speaker_profiles.add(profile)
         submission.save()
         url = event.api_urls.reviews
         data = {"submission": submission.code, "text": "Review for my own talk."}

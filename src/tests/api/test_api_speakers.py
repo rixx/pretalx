@@ -575,7 +575,13 @@ def test_speaker_retrieve_answers_scoped_to_event(
         sub2 = Submission(**submission_data)
         sub2.event = other_event
         sub2.save()
-        sub2.speakers.add(speaker)
+        # Add speaker profile
+
+        from pretalx.person.models import SpeakerProfile
+
+        profile, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=event if 'event' in locals() else sub2.event)
+
+        sub2.speaker_profiles.add(profile)
         sub2.save()
         SpeakerProfile.objects.create(user=speaker, event=other_event)
         question2 = Question.objects.create(
