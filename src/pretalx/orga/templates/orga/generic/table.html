@@ -72,7 +72,7 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
 
                             <div class="sorting-section">
                                 <h4>{% translate "Sorting" %}</h4>
-                                {{ table.configuration_form.get_current_ordering|json_script:"current-ordering" }}
+                                {{ table.configuration_form.get_current_ordering|json_script:"current-ordering-"|add:table.name }}
                                 <div class="sorting-rows">
                                     <div class="sorting-row-template d-none">
                                         <div class="sorting-row d-flex align-items-center mb-2">

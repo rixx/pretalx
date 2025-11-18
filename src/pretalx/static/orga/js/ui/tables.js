@@ -97,7 +97,7 @@ const setupPreferenceModal = (form) => {
     }
 
     const initializeSortRows = () => {
-      const currentOrderingEl = document.getElementById("current-ordering")
+      const currentOrderingEl = document.getElementById(`current-ordering-${tableName}`)
       let currentOrdering = []
 
       if (currentOrderingEl) {

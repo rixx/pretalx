@@ -182,6 +182,7 @@ class PretalxTable(tables.Table):
         columns = None
         ordering = None
         page_size = None
+        preferences = None
 
         # If an ordering has been specified as a query parameter, save it as the
         # user's preferred ordering for this table.
@@ -232,8 +233,7 @@ class PretalxTable(tables.Table):
                     valid_ordering.append(order_field)
 
             # If the ordering changed (invalid columns were removed), update preferences
-            if valid_ordering != ordering and request.user.is_authenticated and self.event:
-                preferences = request.user.get_event_preferences(self.event)
+            if valid_ordering != ordering and preferences is not None:
                 if valid_ordering:
                     preferences.set(f"tables.{self.name}.ordering", valid_ordering, commit=True)
                 else:

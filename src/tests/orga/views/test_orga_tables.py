@@ -395,3 +395,125 @@ def test_column_click_toggles_direction(orga_client, event, orga_user, submissio
         prefs.refresh_from_db()
         saved_ordering = prefs.get("tables.SubmissionTable.ordering")
         assert saved_ordering == ["title", "state"]
+
+
+@pytest.mark.django_db
+def test_column_click_with_no_existing_ordering(
+    orga_client, event, orga_user, submission
+):
+    response = orga_client.get(
+        event.orga_urls.submissions + "?sort=-state", follow=True
+    )
+    assert response.status_code == 200
+
+    with scope(event=event):
+        prefs = orga_user.get_event_preferences(event)
+        saved_ordering = prefs.get("tables.SubmissionTable.ordering")
+        assert saved_ordering == ["-state"]
+
+
+@pytest.mark.django_db
+def test_submission_list_with_all_invalid_ordering_columns(
+    orga_client, event, orga_user, submission
+):
+    with scope(event=event):
+        prefs = orga_user.get_event_preferences(event)
+        prefs.set(
+            "tables.SubmissionTable.ordering",
+            ["nonexistent1", "nonexistent2"],
+            commit=True,
+        )
+
+    response = orga_client.get(event.orga_urls.submissions, follow=True)
+    assert response.status_code == 200
+    assert submission.title in response.text
+
+    with scope(event=event):
+        orga_user.event_preferences_cache.clear()
+        prefs.refresh_from_db()
+        saved_ordering = prefs.get("tables.SubmissionTable.ordering")
+        assert saved_ordering is None
+
+
+@pytest.mark.django_db
+def test_table_preferences_ordering_validation(orga_client, event, orga_user):
+    url = event.orga_urls.base + "preferences/"
+    response = orga_client.post(
+        url,
+        data=json.dumps(
+            {
+                "table_name": "SubmissionTable",
+                "columns": ["indicator", "title"],
+                "ordering": "not-a-list",
+            }
+        ),
+        content_type="application/json",
+    )
+    assert response.status_code == 400
+    data = response.json()
+    assert "error" in data
+    assert "ordering must be a list" in data["error"]
+
+
+@pytest.mark.django_db
+def test_multi_column_sorting_three_levels(
+    orga_client, event, orga_user, submission
+):
+    with scope(event=event):
+        prefs = orga_user.get_event_preferences(event)
+        prefs.set(
+            "tables.SubmissionTable.ordering",
+            ["state", "-title", "code"],
+            commit=True,
+        )
+
+    response = orga_client.get(event.orga_urls.submissions, follow=True)
+    assert response.status_code == 200
+    assert submission.title in response.text
+
+    with scope(event=event):
+        prefs.refresh_from_db()
+        saved_ordering = prefs.get("tables.SubmissionTable.ordering")
+        assert saved_ordering == ["state", "-title", "code"]
+
+
+@pytest.mark.django_db
+def test_sortable_columns_excludes_non_orderable(orga_client, event, orga_user):
+    from pretalx.orga.tables.submission import SubmissionTable
+
+    table = SubmissionTable([])
+    form = table.configuration_form
+    sortable = form.get_sortable_columns()
+    sortable_names = [name for name, label in sortable]
+
+    assert "indicator" not in sortable_names
+    assert "speakers" not in sortable_names
+
+
+@pytest.mark.django_db
+def test_ordering_preserved_after_column_change(
+    orga_client, event, orga_user, submission
+):
+    with scope(event=event):
+        prefs = orga_user.get_event_preferences(event)
+        prefs.set("tables.SubmissionTable.ordering", ["state", "-title"], commit=True)
+
+    url = event.orga_urls.base + "preferences/"
+    response = orga_client.post(
+        url,
+        data=json.dumps(
+            {
+                "table_name": "SubmissionTable",
+                "columns": ["indicator", "title", "code"],
+                "ordering": ["state", "-title"],
+            }
+        ),
+        content_type="application/json",
+    )
+    assert response.status_code == 200
+
+    with scope(event=event):
+        orga_user.event_preferences_cache.clear()
+        prefs.refresh_from_db()
+        saved_ordering = prefs.get("tables.SubmissionTable.ordering")
+        assert saved_ordering == ["state", "-title"]
