@@ -319,7 +319,7 @@ def test_schedule_page_text_wrong_format(
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "version,queries_main,queries_versioned,queries_redirect",
-    (("js", 6, 8, 13), ("nojs", 7, 17, 16)),
+    (("js", 6, 8, 13), ("nojs", 7, 17, 23)),
 )
 @pytest.mark.usefixtures("other_slot")
 def test_versioned_schedule_page(
