@@ -534,6 +534,26 @@ class Answer(PretalxModel):
         """
         return self.speaker_profile.user if self.speaker_profile else None
 
+    @person.setter
+    def person(self, user):
+        """Backwards compatibility setter for person.
+
+        Sets the speaker_profile based on the provided User.
+        """
+        if user is None:
+            self.speaker_profile = None
+        else:
+            from pretalx.person.models import SpeakerProfile
+            # Get or create the SpeakerProfile for this user and event
+            if hasattr(self, 'question') and hasattr(self.question, 'event'):
+                self.speaker_profile, _ = SpeakerProfile.objects.get_or_create(
+                    user=user, event=self.question.event
+                )
+            else:
+                # If we don't have access to the event, just set to None
+                # This shouldn't happen in practice
+                self.speaker_profile = None
+
     def __str__(self):
         """Help when debugging."""
         return f"Answer(question={self.question.question}, answer={self.answer})"
