@@ -582,6 +582,7 @@ class SubmissionListMixin(ReviewerSubmissionFilter, OrgaTableMixin):
             "person.orga_list_speakerprofile", self.request.event
         ):
             default_filters.add("speaker_profiles__user__name__icontains")
+            default_filters.add("speaker_profiles__name__icontains")
         return default_filters
 
     def _get_base_queryset(self, for_review=False):

@@ -291,6 +291,7 @@ class SubmissionFilterForm(forms.Form):
             "code__icontains",
             "title__icontains",
             "speaker_profiles__user__name__icontains",
+            "speaker_profiles__name__icontains",
         )
         usable_states = kwargs.pop("usable_states", None)
         initial = kwargs.pop("initial", {}) or {}

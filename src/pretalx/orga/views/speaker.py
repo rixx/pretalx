@@ -49,7 +49,7 @@ class SpeakerList(EventPermissionRequired, Filterable, OrgaTableMixin, ListView)
     template_name = "orga/speaker/list.html"
     context_object_name = "speakers"
     table_class = SpeakerTable
-    default_filters = ("user__email__icontains", "user__name__icontains")
+    default_filters = ("user__email__icontains", "user__name__icontains", "name__icontains")
     permission_required = "person.orga_list_speakerprofile"
 
     def get_filter_form(self):

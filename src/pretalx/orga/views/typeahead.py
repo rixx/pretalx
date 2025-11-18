@@ -131,6 +131,7 @@ def nav_typeahead(request):
             qs_speakers = (
                 SpeakerProfile.objects.filter(
                     Q(user__name__icontains=query)
+                    | Q(name__icontains=query)
                     | Q(user__email__iexact=query)
                     | Q(user__code__istartswith=query),
                     event__in=full_events,

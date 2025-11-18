@@ -31,8 +31,8 @@ from pretalx.submission.rules import (
 class SpeakerSearchFilter(filters.SearchFilter):
     def get_search_fields(self, view, request):
         if view.is_orga:
-            return ("user__name", "user__email")
-        return ("user__name",)
+            return ("user__name", "name", "user__email")
+        return ("user__name", "name")
 
 
 @extend_schema_view(

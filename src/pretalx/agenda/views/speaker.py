@@ -34,7 +34,7 @@ class SpeakerList(EventPermissionRequired, Filterable, ListView):
     context_object_name = "speakers"
     template_name = "agenda/speakers.html"
     permission_required = "schedule.list_schedule"
-    default_filters = ("user__name__icontains",)
+    default_filters = ("user__name__icontains", "name__icontains")
 
     def get_queryset(self):
         qs = (
@@ -42,7 +42,7 @@ class SpeakerList(EventPermissionRequired, Filterable, ListView):
                 user__in=self.request.event.speakers, event=self.request.event
             )
             .select_related("user", "event")
-            .order_by("user__name")
+            .order_by("name", "user__name")
         )
         qs = self.filter_queryset(qs)
 
