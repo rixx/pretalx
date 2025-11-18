@@ -251,11 +251,12 @@ class SubmissionViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelVie
         queryset = (
             submissions_for_user(self.event, self.request.user)
             .select_related("event", "track", "submission_type")
-            .prefetch_related("speakers", "answers", "slots")
+            .prefetch_related("speaker_profiles", "speaker_profiles__user", "answers", "slots")
             .order_by("code")
         )
         if self.check_expanded_fields("speakers.user"):
-            queryset = queryset.prefetch_related("speakers__profiles")
+            # Already prefetching speaker_profiles__user above
+            pass
         if fields := self.check_expanded_fields(
             "answers.question",
             "answers.question.tracks",
