@@ -99,4 +99,5 @@ class SpeakerExportForm(ExportForm):
         return obj
 
     def get_answer(self, question, obj):
-        return question.answers.filter(person=obj).first()
+        # obj is a User, use the profile for speaker-targeted questions
+        return question.answers.filter(speaker_profile=obj._profile).first()

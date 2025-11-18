@@ -368,8 +368,15 @@ class CfPQuestionRemind(EventPermissionRequired, FormView):
 
     @staticmethod
     def get_missing_answers(*, questions, person, submissions):
+        from pretalx.person.models import SpeakerProfile
+
         missing = []
         submissions = submissions.filter(speaker_profiles__user__in=[person])
+        # Get speaker profile for this person in this event
+        speaker_profile = None
+        if submissions.exists():
+            speaker_profile = submissions.first().speaker_profiles.filter(user=person).first()
+
         for question in questions:
             if question.target == QuestionTarget.SUBMISSION:
                 for submission in submissions:
@@ -377,9 +384,10 @@ class CfPQuestionRemind(EventPermissionRequired, FormView):
                     if not answer or not answer.is_answered:
                         missing.append(question)
             elif question.target == QuestionTarget.SPEAKER:
-                answer = question.answers.filter(person=person).first()
-                if not answer or not answer.is_answered:
-                    missing.append(question)
+                if speaker_profile:
+                    answer = question.answers.filter(speaker_profile=speaker_profile).first()
+                    if not answer or not answer.is_answered:
+                        missing.append(question)
         return missing
 
     @context

@@ -460,7 +460,7 @@ class Answer(PretalxModel):
     """Answers are connected to a.
 
     :class:`~pretalx.submission.models.question.Question`, and, depending on
-    type, a :class:`~pretalx.person.models.user.User`, a
+    type, a :class:`~pretalx.person.models.profile.SpeakerProfile`, a
     :class:`~pretalx.submission.models.submission.Submission`, or a
     :class:`~pretalx.submission.models.review.Review`.
     """
@@ -477,8 +477,8 @@ class Answer(PretalxModel):
         null=True,
         blank=True,
     )
-    person = models.ForeignKey(
-        to="person.User",
+    speaker_profile = models.ForeignKey(
+        to="person.SpeakerProfile",
         on_delete=models.PROTECT,
         related_name="answers",
         null=True,
@@ -524,7 +524,15 @@ class Answer(PretalxModel):
             return self.submission
         if self.question.target == QuestionTarget.REVIEWER:
             return self.review
-        return self.person.event_profile(self.event)
+        return self.speaker_profile
+
+    @property
+    def person(self):
+        """Backwards compatibility property to access User.
+
+        Returns the User object for this answer's speaker_profile.
+        """
+        return self.speaker_profile.user if self.speaker_profile else None
 
     def __str__(self):
         """Help when debugging."""
@@ -567,7 +575,7 @@ class Answer(PretalxModel):
     def log_action(self, *args, content_object=None, **kwargs):
         if not content_object:
             if self.question.target == QuestionTarget.SPEAKER:
-                content_object = self.person
+                content_object = self.speaker_profile
             elif self.question.target == QuestionTarget.SUBMISSION:
                 content_object = self.submission
             elif self.question.target == QuestionTarget.REVIEWER:

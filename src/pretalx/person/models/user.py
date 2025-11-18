@@ -312,7 +312,7 @@ class User(
         self.save()
         self.profiles.all().update(biography="")
         for answer in Answer.objects.filter(
-            person=self, question__contains_personal_data=True
+            speaker_profile__user=self, question__contains_personal_data=True
         ):
             answer.delete()  # Iterate to delete answer files, too
         for team in self.teams.all():
