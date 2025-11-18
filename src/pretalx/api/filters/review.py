@@ -37,7 +37,7 @@ with scopes_disabled():
                 self.filters["submission"].queryset = submissions
                 self.filters["user"].queryset = event.reviewers.all()
                 self.filters["speaker"].queryset = User.objects.filter(
-                    submissions__in=submissions
+                    profiles__submissions__in=submissions
                 )
 
         class Meta:
