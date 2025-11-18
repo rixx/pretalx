@@ -404,7 +404,9 @@ class CfPQuestionRemind(EventPermissionRequired, FormView):
 
     def form_valid(self, form):
         submissions = form.get_submissions()
-        people = self.request.event.submitters.filter(submissions__in=submissions)
+        people = self.request.event.submitters.filter(
+            profiles__submissions__in=submissions
+        )
         questions = form.cleaned_data["questions"] or form.get_question_queryset()
         data = {
             "url": self.request.event.urls.user_submissions.full(),

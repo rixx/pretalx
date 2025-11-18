@@ -66,14 +66,14 @@ class SpeakerList(EventPermissionRequired, Filterable, OrgaTableMixin, ListView)
             .select_related("event", "user")
             .annotate(
                 submission_count=Count(
-                    "user__submissions",
-                    filter=Q(user__submissions__event=self.request.event),
+                    "submissions",
+                    filter=Q(submissions__event=self.request.event),
                     distinct=True,
                 ),
                 accepted_submission_count=Count(
-                    "user__submissions",
-                    filter=Q(user__submissions__event=self.request.event)
-                    & Q(user__submissions__state__in=SubmissionStates.accepted_states),
+                    "submissions",
+                    filter=Q(submissions__event=self.request.event)
+                    & Q(submissions__state__in=SubmissionStates.accepted_states),
                     distinct=True,
                 ),
             )

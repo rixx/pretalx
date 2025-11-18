@@ -379,10 +379,15 @@ class EventDashboardView(EventPermissionRequired, TemplateView):
                     "priority": 56,
                 }
             )
+        from pretalx.person.models import SpeakerProfile
+
         submitter_count = event.submitters.count()
-        speaker_count = event.speaker_profiles.count()
+        speaker_count = SpeakerProfile.objects.filter(event=event).count()
         rejected_count = (
-            event.submitters.filter(submissions__state=SubmissionStates.REJECTED)
+            event.submitters.filter(
+                profiles__submissions__state=SubmissionStates.REJECTED,
+                profiles__submissions__event=event
+            )
             .distinct()
             .count()
         )
