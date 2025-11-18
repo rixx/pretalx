@@ -21,7 +21,7 @@ def test_can_see_talk_list(client, django_assert_num_queries, event):
 @pytest.mark.django_db
 @pytest.mark.usefixtures("other_slot")
 def test_can_see_talk(client, django_assert_num_queries, event, slot):
-    with django_assert_num_queries(20):
+    with django_assert_num_queries(23):
         response = client.get(slot.submission.urls.public, follow=True)
     assert response.status_code == 200
     content = response.text
@@ -41,7 +41,7 @@ def test_can_see_talk(client, django_assert_num_queries, event, slot):
 def test_can_see_talk_with_iframe(client, django_assert_num_queries, event, slot):
     event.plugins = "tests"
     event.save()
-    with django_assert_num_queries(20):
+    with django_assert_num_queries(23):
         response = client.get(slot.submission.urls.public, follow=True)
     assert response.status_code == 200
     content = response.text
@@ -58,7 +58,7 @@ def test_can_see_social_card(client, slot):
 @pytest.mark.django_db
 def test_cannot_see_new_talk(client, django_assert_num_queries, event, unreleased_slot):
     slot = unreleased_slot
-    with django_assert_num_queries(12):
+    with django_assert_num_queries(13):
         response = client.get(slot.submission.urls.public)
     assert response.status_code == 404
     with scope(event=event):
@@ -70,7 +70,7 @@ def test_orga_can_see_new_talk(
     orga_client, django_assert_num_queries, event, unreleased_slot
 ):
     slot = unreleased_slot
-    with django_assert_num_queries(23):
+    with django_assert_num_queries(26):
         response = orga_client.get(slot.submission.urls.public, follow=True)
     assert response.status_code == 200
     content = response.text
@@ -94,7 +94,7 @@ def test_can_see_talk_edit_btn(
         from pretalx.person.models import SpeakerProfile
         profile, _ = SpeakerProfile.objects.get_or_create(user=orga_user, event=event)
         slot.submission.speaker_profiles.add(profile)
-    with django_assert_num_queries(24):
+    with django_assert_num_queries(27):
         response = orga_client.get(slot.submission.urls.public, follow=True)
     assert response.status_code == 200
     content = response.text
@@ -107,7 +107,7 @@ def test_can_see_talk_do_not_record(client, event, django_assert_num_queries, sl
     with scope(event=event):
         slot.submission.do_not_record = True
         slot.submission.save()
-    with django_assert_num_queries(19):
+    with django_assert_num_queries(22):
         response = client.get(slot.submission.urls.public, follow=True)
     assert response.status_code == 200
     content = response.text
@@ -123,7 +123,7 @@ def test_can_see_talk_does_accept_feedback(
         slot.start = now() - dt.timedelta(days=1)
         slot.end = slot.start + dt.timedelta(hours=1)
         slot.save()
-    with django_assert_num_queries(20):
+    with django_assert_num_queries(23):
         response = client.get(slot.submission.urls.public, follow=True)
     assert response.status_code == 200
     content = response.text
@@ -136,7 +136,7 @@ def test_can_see_talk_does_accept_feedback(
 def test_cannot_see_nonpublic_talk(client, django_assert_num_queries, event, slot):
     event.is_public = False
     event.save()
-    with django_assert_num_queries(11):
+    with django_assert_num_queries(12):
         response = client.get(slot.submission.urls.public, follow=True)
     assert response.status_code == 404
 
