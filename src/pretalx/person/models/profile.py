@@ -125,6 +125,10 @@ class SpeakerProfile(PretalxModel):
         return self.user.code
 
     @cached_property
+    def guid(self):
+        return self.user.guid
+
+    @cached_property
     def submissions(self):
         """All non-deleted.
 

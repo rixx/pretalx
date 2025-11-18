@@ -23,11 +23,12 @@ class CSVSpeakerExporter(CSVExporterMixin, BaseExporter):
         fieldnames = ["name", "email", "confirmed"]
         data = []
         for speaker in self.event.submitters:
-            accepted_talks = speaker.submissions.filter(
-                event=self.event, state=SubmissionStates.ACCEPTED
+            # Use event.submissions to stay within scope
+            accepted_talks = self.event.submissions.filter(
+                speaker_profiles__user=speaker, state=SubmissionStates.ACCEPTED
             ).exists()
-            confirmed_talks = speaker.submissions.filter(
-                event=self.event, state=SubmissionStates.CONFIRMED
+            confirmed_talks = self.event.submissions.filter(
+                speaker_profiles__user=speaker, state=SubmissionStates.CONFIRMED
             ).exists()
             if not accepted_talks and not confirmed_talks:
                 continue

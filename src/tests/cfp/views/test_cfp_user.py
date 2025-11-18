@@ -547,7 +547,8 @@ def test_can_edit_and_update_speaker_answers(
     speaker_file_question,
 ):
     with scope(event=event):
-        answer = speaker.answers.filter(question_id=speaker_question.pk).first()
+        speaker_profile = speaker.event_profile(event)
+        answer = speaker_profile.answers.filter(question_id=speaker_question.pk).first()
         assert not answer
     f = SimpleUploadedFile("testfile.txt", b"file_content")
     response = speaker_client.post(
@@ -564,18 +565,19 @@ def test_can_edit_and_update_speaker_answers(
     assert response.status_code == 200
 
     with scope(event=event):
-        answer = speaker.answers.get(question_id=speaker_question.pk)
+        speaker_profile = speaker.event_profile(event)
+        answer = speaker_profile.answers.get(question_id=speaker_question.pk)
         assert answer.answer == "black as the night"
         assert (
-            speaker.answers.get(question_id=speaker_boolean_question.pk).answer
+            speaker_profile.answers.get(question_id=speaker_boolean_question.pk).answer
             == "True"
         )
         assert (
-            speaker.answers.get(question_id=speaker_text_question.pk).answer
+            speaker_profile.answers.get(question_id=speaker_text_question.pk).answer
             == "Green is totally the best color."
         )
 
-        file_answer = speaker.answers.get(question_id=speaker_file_question.pk)
+        file_answer = speaker_profile.answers.get(question_id=speaker_file_question.pk)
         assert file_answer.answer.startswith("file://")
         assert file_answer.answer_file.read() == b"file_content"
         assert (settings.MEDIA_ROOT / file_answer.answer_file.name).exists()

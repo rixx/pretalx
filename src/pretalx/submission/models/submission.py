@@ -1073,7 +1073,7 @@ class Submission(GenerateCode, PretalxModel):
         from pretalx.person.models import User
 
         return User.objects.filter(
-            profiles__in=self.speaker_profiles.all()
+            profiles__submissions=self
         ).distinct()
 
     @property

@@ -984,7 +984,7 @@ class Event(PretalxModel):
         """
         from pretalx.person.models import User
 
-        return User.objects.filter(submissions__in=self.talks).order_by("id").distinct()
+        return User.objects.filter(profiles__submissions__in=self.talks).order_by("id").distinct()
 
     @cached_property
     def submitters(self):
@@ -996,8 +996,8 @@ class Event(PretalxModel):
         from pretalx.person.models import User
 
         return (
-            User.objects.filter(submissions__in=self.submissions.all())
-            .prefetch_related("submissions")
+            User.objects.filter(profiles__submissions__in=self.submissions.all())
+            .prefetch_related("profiles__submissions")
             .order_by("id")
             .distinct()
         )

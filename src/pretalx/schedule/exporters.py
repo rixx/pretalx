@@ -236,20 +236,16 @@ class FrabJsonExporter(ScheduleData):
                                     "do_not_record": talk.submission.do_not_record,
                                     "persons": [
                                         {
-                                            "code": person.code,
-                                            "name": person.get_display_name(),
-                                            "avatar": person.get_avatar_url(self.event)
+                                            "code": profile.code,
+                                            "name": profile.user.get_display_name(),
+                                            "avatar": profile.user.get_avatar_url(self.event)
                                             or None,
-                                            "biography": person.event_profile(
-                                                self.event
-                                            ).biography,
-                                            "public_name": person.get_display_name(),  # deprecated
-                                            "guid": person.guid,
-                                            "url": person.event_profile(
-                                                self.event
-                                            ).urls.public.full(),
+                                            "biography": profile.biography,
+                                            "public_name": profile.user.get_display_name(),  # deprecated
+                                            "guid": profile.guid,
+                                            "url": profile.urls.public.full(),
                                         }
-                                        for person in talk.submission.speaker_profiles.all()
+                                        for profile in talk.submission.speaker_profiles.all()
                                     ],
                                     "links": [
                                         {

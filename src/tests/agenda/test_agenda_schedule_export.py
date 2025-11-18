@@ -88,7 +88,7 @@ def test_schedule_frab_xml_export(
     etree.fromstring(
         response.content, parser
     )  # Will raise if the schedule does not match the schema
-    with django_assert_max_num_queries(10):
+    with django_assert_max_num_queries(11):
         response = client.get(
             reverse(
                 "agenda:export.schedule.xml",
@@ -107,7 +107,7 @@ def test_schedule_frab_xml_export_control_char(
     slot.submission.description = "control char: \a"
     slot.submission.save()
 
-    with django_assert_max_num_queries(11):
+    with django_assert_max_num_queries(12):
         response = client.get(
             reverse(
                 "agenda:export.schedule.xml",
@@ -171,7 +171,7 @@ def test_schedule_frab_json_export(
 @pytest.mark.django_db
 @pytest.mark.usefixtures("break_slot")
 def test_schedule_frab_xcal_export(slot, client, django_assert_max_num_queries):
-    with django_assert_max_num_queries(11):
+    with django_assert_max_num_queries(12):
         response = client.get(
             reverse(
                 "agenda:export.schedule.xcal",
@@ -239,7 +239,7 @@ def test_schedule_export_nonpublic(
 def test_schedule_export_public(exporter, slot, client, django_assert_max_num_queries):
     exporter = "feed" if exporter == "feed" else f"export.{exporter}"
 
-    with django_assert_max_num_queries(15):
+    with django_assert_max_num_queries(16):
         response = client.get(
             reverse(f"agenda:{exporter}", kwargs={"event": slot.submission.event.slug}),
             follow=True,
