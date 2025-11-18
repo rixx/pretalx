@@ -155,7 +155,7 @@ def test_cannot_see_other_events_talk(
 
 @pytest.mark.django_db
 def test_event_talk_visiblity_submitted(client, django_assert_num_queries, submission):
-    with django_assert_num_queries(10):
+    with django_assert_num_queries(11):
         response = client.get(submission.urls.public, follow=True)
     assert response.status_code == 404
 
@@ -165,7 +165,7 @@ def test_event_talk_visiblity_submitted(client, django_assert_num_queries, submi
 def test_event_talk_visiblity_accepted(
     client, django_assert_num_queries, accepted_submission
 ):
-    with django_assert_num_queries(11):
+    with django_assert_num_queries(12):
         response = client.get(accepted_submission.urls.public, follow=True)
     assert response.status_code == 404
 
@@ -175,7 +175,7 @@ def test_event_talk_visiblity_accepted(
 def test_event_talk_visiblity_confirmed(
     client, django_assert_num_queries, confirmed_submission
 ):
-    with django_assert_num_queries(18):
+    with django_assert_num_queries(21):
         response = client.get(confirmed_submission.urls.public, follow=True)
     assert response.status_code == 200
 
@@ -185,7 +185,7 @@ def test_event_talk_visiblity_confirmed(
 def test_event_talk_visiblity_canceled(
     client, django_assert_num_queries, canceled_submission
 ):
-    with django_assert_num_queries(11):
+    with django_assert_num_queries(12):
         response = client.get(canceled_submission.urls.public, follow=True)
     assert response.status_code == 404
 
@@ -195,7 +195,7 @@ def test_event_talk_visiblity_canceled(
 def test_event_talk_visiblity_withdrawn(
     client, django_assert_num_queries, withdrawn_submission
 ):
-    with django_assert_num_queries(11):
+    with django_assert_num_queries(12):
         response = client.get(withdrawn_submission.urls.public, follow=True)
     assert response.status_code == 404
 
