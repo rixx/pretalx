@@ -454,7 +454,7 @@ class ComposeMailBaseView(EventPermissionRequired, FormView):
             )
         ]
         if self.request.method == "POST" and ctx["form"].is_valid():
-            ctx["submit_buttons"].append(Button(label=_("Send to outbox")))
+            ctx["submit_buttons"].append(Button(label=_("Save to drafts")))
         return ctx
 
     def form_valid(self, form):

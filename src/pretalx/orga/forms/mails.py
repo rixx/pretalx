@@ -208,7 +208,7 @@ class WriteMailBaseForm(MailTemplateForm):
         label=_("Send immediately"),
         required=False,
         help_text=_(
-            "If you check this, the emails will be sent immediately, instead of being put in the outbox."
+            "If you check this, the emails will be sent immediately, instead of being saved to your drafts."
         ),
     )
 

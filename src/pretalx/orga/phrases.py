@@ -22,5 +22,5 @@ class OrgaPhrases(Phrases, app="orga"):
         _("The password reset email could not be sent, so the password was not reset."),
     )
     mails_in_outbox = _(
-        "{count} emails have been saved to the outbox – you can make individual changes there or just send them all."
+        "{count} emails have been saved to your drafts – you can make individual changes there or just send them all."
     )
