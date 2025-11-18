@@ -222,7 +222,7 @@ class SubmissionsWithdrawView(LoggedInEventPageMixin, SubmissionViewMixin, Detai
                             )
                         ).format(
                             title=obj.title,
-                            speaker_profiles=obj.display_speaker_names,
+                            speakers=obj.display_speaker_names,
                             user=request.user.get_display_name(),
                             event_dashboard=request.event.orga_urls.base.full(),
                             url=obj.orga_urls.edit.full(),
