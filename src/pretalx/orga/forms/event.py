@@ -32,6 +32,7 @@ from pretalx.common.forms.mixins import (
     PretalxI18nModelForm,
     ReadOnlyFlag,
 )
+from pretalx.common.names import PERSON_NAME_SCHEMES
 from pretalx.common.forms.renderers import InlineFormLabelRenderer, InlineFormRenderer
 from pretalx.common.forms.widgets import (
     EnhancedSelect,
@@ -147,6 +148,17 @@ class EventForm(ReadOnlyFlag, JsonSubfieldMixin, PretalxI18nModelForm):
         choices=Event.HEADER_PATTERN_CHOICES,
         required=False,
         widget=HeaderSelect,
+    )
+    name_scheme = forms.ChoiceField(
+        label=_("Name format"),
+        help_text=_("How speaker names should be collected and displayed."),
+        choices=[
+            (key, scheme["fields"][0][1] if len(scheme["fields"]) == 1 else
+             " + ".join(str(f[1]) for f in scheme["fields"]))
+            for key, scheme in PERSON_NAME_SCHEMES.items()
+        ],
+        required=False,
+        widget=EnhancedSelect,
     )
     meta_noindex = forms.BooleanField(
         label=_("Ask search engines not to index the event pages"), required=False
@@ -377,6 +389,7 @@ class EventForm(ReadOnlyFlag, JsonSubfieldMixin, PretalxI18nModelForm):
             "export_html_on_release": "feature_flags",
             "html_export_url": "display_settings",
             "header_pattern": "display_settings",
+            "name_scheme": "display_settings",
             "meta_noindex": "display_settings",
         }
 
