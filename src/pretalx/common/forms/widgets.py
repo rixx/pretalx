@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
 
 import datetime as dt
+import json
 from pathlib import Path
 
 from django import forms
@@ -9,6 +10,7 @@ from django.core.files import File
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
+from pretalx.common.names import PERSON_NAME_SCHEMES
 from pretalx.common.text.phrases import phrases
 
 
@@ -344,3 +346,71 @@ class AvatarCropWidget(ClearableBasenameFileInput):
             forms.Script("common/js/forms/avatar_crop.js", defer=""),
             forms.Script("common/js/forms/filesize.js", defer=""),
         ]
+
+
+class NamePartsWidget(forms.MultiWidget):
+    """Widget for structured name input based on a name scheme."""
+
+    template_name = "common/widgets/name_parts.html"
+
+    def __init__(self, scheme="given_family", attrs=None):
+        self.scheme = scheme
+        scheme_data = PERSON_NAME_SCHEMES.get(scheme, PERSON_NAME_SCHEMES["given_family"])
+        self.fields_config = scheme_data["fields"]
+
+        # Create a widget for each field in the scheme
+        widgets = []
+        for field_name, label, size_weight in self.fields_config:
+            widget_attrs = {"placeholder": str(label)}
+            if attrs:
+                widget_attrs.update(attrs)
+            widgets.append(forms.TextInput(attrs=widget_attrs))
+
+        super().__init__(widgets, attrs)
+
+    def decompress(self, value):
+        """Convert a name_parts dict to a list of values for each widget."""
+        if not value:
+            return [""] * len(self.widgets)
+
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except (json.JSONDecodeError, TypeError):
+                return [""] * len(self.widgets)
+
+        # Handle legacy format
+        if "_legacy" in value:
+            # For legacy, put the full name in the first field
+            result = [""] * len(self.widgets)
+            if result:
+                result[0] = value["_legacy"]
+            return result
+
+        # Extract values for each field
+        result = []
+        for field_name, label, size_weight in self.fields_config:
+            result.append(value.get(field_name, ""))
+        return result
+
+    def value_from_datadict(self, data, files, name):
+        """Collect values from all subwidgets into a dict."""
+        values = super().value_from_datadict(data, files, name)
+
+        # Build the name_parts dict
+        result = {}
+        for i, (field_name, label, size_weight) in enumerate(self.fields_config):
+            if i < len(values) and values[i]:
+                result[field_name] = values[i]
+
+        # Add scheme info if we have values
+        if result:
+            result["_scheme"] = self.scheme
+
+        return json.dumps(result)
+
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        # Add field configuration for the template
+        context["widget"]["fields_config"] = self.fields_config
+        return context

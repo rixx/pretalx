@@ -18,11 +18,15 @@ from pretalx.common.forms.widgets import (
     ClearableBasenameFileInput,
     ColorPickerWidget,
     ImageInput,
+    NamePartsWidget,
     PasswordConfirmationInput,
     PasswordStrengthInput,
 )
+from pretalx.common.names import PERSON_NAME_SCHEMES, REQUIRED_NAME_PARTS
 from pretalx.common.templatetags.filesize import filesize
-from pretalx.schedule.models import Availability, Room
+
+# Avoid circular import - import these lazily in methods that need them
+# from pretalx.schedule.models import Availability, Room
 
 IMAGE_EXTENSIONS = {
     ".png": ["image/png", ".png"],
@@ -188,6 +192,8 @@ class AvailabilitiesField(CharField):
             self.initial = self._serialize(self.event, self.instance)
 
     def _serialize(self, event, instance):
+        from pretalx.schedule.models import Availability, Room
+
         availabilities = []
         if instance and instance.pk:
             availabilities = [av.serialize() for av in instance.availabilities.all()]
@@ -290,6 +296,8 @@ class AvailabilitiesField(CharField):
         rawavail["end"] = min(rawavail["end"], timeframe_end)
 
     def clean(self, value):
+        from pretalx.schedule.models import Availability
+
         if isinstance(value, list):
             value = {"availabilities": value}
         if isinstance(value, dict):
@@ -317,3 +325,84 @@ class AvailabilitiesField(CharField):
             )
 
         return Availability.union(availabilities)
+
+
+class NamePartsFormField(CharField):
+    """Form field for structured name input based on event name scheme."""
+
+    default_error_messages = {
+        "invalid_json": _("Submitted name data is not valid: %(error)s."),
+        "required_field": _("Please fill in the %(field)s field."),
+    }
+
+    def __init__(self, *args, event=None, scheme=None, **kwargs):
+        self.event = event
+
+        # Determine scheme from event settings or use default
+        if scheme:
+            self.scheme = scheme
+        elif event:
+            self.scheme = event.display_settings.get("name_scheme", "given_family")
+        else:
+            self.scheme = "given_family"
+
+        # Set up the widget
+        kwargs.setdefault("widget", NamePartsWidget(scheme=self.scheme))
+
+        # Set label based on scheme
+        if "label" not in kwargs:
+            kwargs["label"] = _("Name")
+
+        super().__init__(*args, **kwargs)
+
+    def clean(self, value):
+        """Validate and clean the name parts data."""
+        # Parse JSON if it's a string
+        if isinstance(value, str):
+            if not value or value == "{}":
+                if self.required:
+                    raise ValidationError(
+                        self.error_messages["required_field"],
+                        code="required_field",
+                        params={"field": _("name")},
+                    )
+                return {}
+
+            try:
+                value = json.loads(value)
+            except (json.JSONDecodeError, TypeError) as e:
+                raise ValidationError(
+                    self.error_messages["invalid_json"],
+                    code="invalid_json",
+                    params={"error": str(e)},
+                )
+
+        if not isinstance(value, dict):
+            value = {}
+
+        # Validate required fields based on scheme
+        if self.required and value:
+            scheme_data = PERSON_NAME_SCHEMES.get(
+                self.scheme, PERSON_NAME_SCHEMES["given_family"]
+            )
+            for field_name, label, _ in scheme_data["fields"]:
+                if field_name in REQUIRED_NAME_PARTS and not value.get(field_name):
+                    raise ValidationError(
+                        self.error_messages["required_field"],
+                        code="required_field",
+                        params={"field": str(label)},
+                    )
+
+        # Ensure scheme is stored in the value
+        if value and "_scheme" not in value:
+            value["_scheme"] = self.scheme
+
+        return value
+
+    def prepare_value(self, value):
+        """Prepare the value for display in the widget."""
+        if isinstance(value, str):
+            return value
+        if isinstance(value, dict):
+            return json.dumps(value)
+        return ""

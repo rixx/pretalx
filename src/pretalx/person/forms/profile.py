@@ -8,7 +8,12 @@ from django.utils.translation import gettext_lazy as _
 from django_scopes.forms import SafeModelChoiceField, SafeModelMultipleChoiceField
 
 from pretalx.cfp.forms.cfp import CfPFormMixin
-from pretalx.common.forms.fields import AvailabilitiesField, ImageField, SizeFileField
+from pretalx.common.forms.fields import (
+    AvailabilitiesField,
+    ImageField,
+    NamePartsFormField,
+    SizeFileField,
+)
 from pretalx.common.forms.mixins import (
     PretalxI18nModelForm,
     PublicContent,
@@ -44,10 +49,11 @@ class SpeakerProfileForm(
     RequestRequire,
     forms.ModelForm,
 ):
-    USER_FIELDS = ["name", "email", "avatar", "get_gravatar"]
+    USER_FIELDS = ["email", "avatar", "get_gravatar"]
     FIRST_TIME_EXCLUDE = ["email"]
 
     availabilities = AvailabilitiesField()
+    name_parts = NamePartsFormField()
 
     def __init__(self, *args, name=None, **kwargs):
         self.user = kwargs.pop("user", None)
@@ -66,9 +72,26 @@ class SpeakerProfileForm(
             # Also set form-level initial data for error handling
             if self.fields["availabilities"].initial:
                 self.initial["availabilities"] = self.fields["availabilities"].initial
+
+        # Configure name_parts field with event settings
+        if "name_parts" in self.fields:
+            self.fields["name_parts"].event = self.event
+            if self.event:
+                scheme = self.event.display_settings.get("name_scheme", "given_family")
+                self.fields["name_parts"].scheme = scheme
+                # Recreate widget with correct scheme
+                from pretalx.common.forms.widgets import NamePartsWidget
+
+                self.fields["name_parts"].widget = NamePartsWidget(scheme=scheme)
+            # Set initial value from instance or from name parameter
+            if self.instance and self.instance.pk and self.instance.name_parts:
+                self.initial["name_parts"] = self.instance.name_parts
+            elif name:
+                # For new speakers, initialize with given name if provided
+                self.initial["name_parts"] = {"_legacy": name}
+
         read_only = kwargs.get("read_only", False)
         initial = kwargs.get("initial", {})
-        initial["name"] = name
 
         if self.user:
             initial.update(
@@ -157,6 +180,11 @@ class SpeakerProfileForm(
 
         self.instance.event = self.event
         self.instance.user = self.user
+
+        # Handle name_parts - the model's save() will build the cached name
+        if "name_parts" in self.cleaned_data:
+            self.instance.name_parts = self.cleaned_data["name_parts"]
+
         result = super().save(**kwargs)
 
         availabilities = self.cleaned_data.get("availabilities")
@@ -174,17 +202,19 @@ class SpeakerProfileForm(
     class Meta:
         model = SpeakerProfile
         fields = (
+            "name_parts",
             "biography",
             "internal_notes",
         )
-        public_fields = ["name", "biography", "avatar"]
+        public_fields = ["name_parts", "biography", "avatar"]
         widgets = {
             "avatar": AvatarCropWidget,
         }
         field_classes = {
             "avatar": ImageField,
+            "name_parts": NamePartsFormField,
         }
-        request_require = {"biography", "availabilities"}
+        request_require = {"biography", "availabilities", "name_parts"}
 
 
 class SpeakerAvailabilityForm(forms.Form):
