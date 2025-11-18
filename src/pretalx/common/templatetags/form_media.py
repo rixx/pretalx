@@ -8,10 +8,7 @@ from django import forms, template
 register = template.Library()
 
 DEFAULT_FORM_MEDIA = forms.Media(
-    js=[
-        forms.Script("common/js/forms/base.js", defer=""),
-        forms.Script("common/js/forms/scroll-to-error.js", defer=""),
-    ],
+    js=[forms.Script("common/js/forms/base.js", defer="")],
     css={"all": ["common/css/forms/base.css"]},
 )
 
