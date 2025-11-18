@@ -465,6 +465,92 @@ def test_can_edit_choice_question(orga_client, event, choice_question):
         assert str(choice_question.options.first().answer) == "African"
 
 
+@pytest.mark.django_db
+def test_can_add_multiple_choice_question_with_limits(orga_client, event):
+    """Test that organisers can create multiple choice questions with min/max limits."""
+    with scope(event=event):
+        assert event.questions.count() == 0
+    response = orga_client.post(
+        event.cfp.urls.new_question,
+        {
+            "target": "submission",
+            "question_0": "Which programming languages do you use?",
+            "variant": "multiple_choice",
+            "active": True,
+            "help_text_0": "Select at least 2 and at most 4 languages",
+            "min_choices": 2,
+            "max_choices": 4,
+            "form-TOTAL_FORMS": 5,
+            "form-INITIAL_FORMS": 0,
+            "form-0-id": "",
+            "form-0-answer_0": "Python",
+            "form-1-id": "",
+            "form-1-answer_0": "JavaScript",
+            "form-2-id": "",
+            "form-2-answer_0": "Java",
+            "form-3-id": "",
+            "form-3-answer_0": "C++",
+            "form-4-id": "",
+            "form-4-answer_0": "Go",
+            "form-5-id": "",
+            "form-5-answer_0": "",
+            "question_required": QuestionRequired.OPTIONAL,
+        },
+        follow=True,
+    )
+    assert response.status_code == 200
+    with scope(event=event):
+        event.refresh_from_db()
+        assert event.questions.count() == 1
+        q = event.questions.first()
+        assert q.variant == "multiple_choice"
+        assert q.min_choices == 2
+        assert q.max_choices == 4
+        assert q.options.count() == 5
+
+
+@pytest.mark.django_db
+def test_can_edit_multiple_choice_question_with_limits(orga_client, event, multiple_choice_question):
+    """Test that organisers can edit multiple choice questions to add/update min/max limits."""
+    with scope(event=event):
+        # Initially no limits
+        assert multiple_choice_question.min_choices is None
+        assert multiple_choice_question.max_choices is None
+        first_option = multiple_choice_question.options.first().pk
+        second_option = multiple_choice_question.options.all()[1].pk
+        third_option = multiple_choice_question.options.last().pk
+
+    response = orga_client.post(
+        multiple_choice_question.urls.edit,
+        {
+            "target": "speaker",
+            "question_0": "Which colors do you like?",
+            "variant": "multiple_choice",
+            "active": True,
+            "help_text_0": "Select 1-2 colors",
+            "min_choices": 1,
+            "max_choices": 2,
+            "form-TOTAL_FORMS": 3,
+            "form-INITIAL_FORMS": 3,
+            "form-0-id": first_option,
+            "form-0-answer_0": "yellow",
+            "form-1-id": second_option,
+            "form-1-answer_0": "blue",
+            "form-2-id": third_option,
+            "form-2-answer_0": "black",
+            "form-3-id": "",
+            "form-3-answer_0": "",
+            "question_required": QuestionRequired.OPTIONAL,
+        },
+        follow=True,
+    )
+    assert response.status_code == 200
+    with scope(event=event):
+        multiple_choice_question.refresh_from_db()
+        assert multiple_choice_question.min_choices == 1
+        assert multiple_choice_question.max_choices == 2
+
+
 @pytest.mark.parametrize("role,count", (("accepted", 1), ("confirmed", 1), ("", 2)))
 @pytest.mark.django_db
 def test_can_remind_speaker_question(

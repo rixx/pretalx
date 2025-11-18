@@ -536,6 +536,24 @@ def multiple_choice_question(event):
 
 
 @pytest.fixture
+def multiple_choice_question_with_limits(event):
+    with scope(event=event):
+        question = Question.objects.create(
+            event=event,
+            question="Select your favorite programming languages",
+            variant=QuestionVariant.MULTIPLE,
+            target="submission",
+            question_required=QuestionRequired.REQUIRED,
+            min_choices=2,
+            max_choices=3,
+            position=11,
+        )
+        for answer in ("Python", "JavaScript", "Java", "C++", "Go"):
+            AnswerOption.objects.create(question=question, answer=answer)
+    return question
+
+
+@pytest.fixture
 def speaker_text_question(event):
     with scope(event=event):
         return Question.objects.create(

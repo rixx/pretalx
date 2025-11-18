@@ -764,6 +764,106 @@ class TestWizard:
         user = self.assert_user(submission, email="testuser@example.com")
         self.assert_mail(submission, user)
 
+    @pytest.mark.django_db
+    def test_wizard_validates_min_choices(
+        self, event, client, multiple_choice_question_with_limits, user
+    ):
+        """Test that minimum choices validation works in CFP wizard."""
+        with scope(event=event):
+            event.cfp.deadline = now() + dt.timedelta(days=1)
+            event.save()
+            submission_type = SubmissionType.objects.filter(event=event).first().pk
+            # Try to submit with only 1 choice (min is 2)
+            answer_data = {
+                f"question_{multiple_choice_question_with_limits.pk}": [
+                    multiple_choice_question_with_limits.options.first().pk
+                ],
+            }
+
+        response, current_url = self.perform_init_wizard(client, event=event)
+        response, current_url = self.perform_info_wizard(
+            client,
+            response,
+            current_url,
+            submission_type=submission_type,
+            event=event,
+        )
+        # This should fail validation
+        response = client.post(current_url, data=answer_data, follow=False)
+        assert response.status_code == 200  # Stays on the same page
+        assert "at least 2" in response.content.decode().lower()
+
+    @pytest.mark.django_db
+    def test_wizard_validates_max_choices(
+        self, event, client, multiple_choice_question_with_limits, user
+    ):
+        """Test that maximum choices validation works in CFP wizard."""
+        with scope(event=event):
+            event.cfp.deadline = now() + dt.timedelta(days=1)
+            event.save()
+            submission_type = SubmissionType.objects.filter(event=event).first().pk
+            options = list(multiple_choice_question_with_limits.options.all())
+            # Try to submit with 4 choices (max is 3)
+            answer_data = {
+                f"question_{multiple_choice_question_with_limits.pk}": [
+                    options[0].pk,
+                    options[1].pk,
+                    options[2].pk,
+                    options[3].pk,
+                ],
+            }
+
+        response, current_url = self.perform_init_wizard(client, event=event)
+        response, current_url = self.perform_info_wizard(
+            client,
+            response,
+            current_url,
+            submission_type=submission_type,
+            event=event,
+        )
+        # This should fail validation
+        response = client.post(current_url, data=answer_data, follow=False)
+        assert response.status_code == 200  # Stays on the same page
+        assert "at most 3" in response.content.decode().lower()
+
+    @pytest.mark.django_db
+    def test_wizard_accepts_valid_choice_count(
+        self, event, client, multiple_choice_question_with_limits, user
+    ):
+        """Test that valid choice count (within min/max) is accepted."""
+        with scope(event=event):
+            event.cfp.deadline = now() + dt.timedelta(days=1)
+            event.save()
+            submission_type = SubmissionType.objects.filter(event=event).first().pk
+            options = list(multiple_choice_question_with_limits.options.all())
+            # Submit with 2 choices (min=2, max=3) - should be valid
+            answer_data = {
+                f"question_{multiple_choice_question_with_limits.pk}": [
+                    options[0].pk,
+                    options[1].pk,
+                ],
+            }
+
+        response, current_url = self.perform_init_wizard(client, event=event)
+        response, current_url = self.perform_info_wizard(
+            client,
+            response,
+            current_url,
+            submission_type=submission_type,
+            event=event,
+        )
+        # This should succeed
+        response, current_url = self.perform_question_wizard(
+            client,
+            response,
+            current_url,
+            answer_data,
+            next_step="user",
+            event=event,
+        )
+        # Should move to next step (user)
+        assert "/user/" in current_url
+
 
 @pytest.mark.django_db
 def test_infoform_set_submission_type(event, other_event):
