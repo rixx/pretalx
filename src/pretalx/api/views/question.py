@@ -259,11 +259,20 @@ class AnswerViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelViewSet
 
     def perform_create(self, serializer):
         old_answer_value = None
+
+        # Convert person (User) to speaker_profile if present
+        speaker_profile = None
+        if person := serializer.validated_data.get("person"):
+            from pretalx.person.models import SpeakerProfile
+            speaker_profile, _ = SpeakerProfile.objects.get_or_create(
+                user=person, event=self.request.event
+            )
+
         existing_answer = Answer.objects.filter(
             question=serializer.validated_data["question"],
             review=serializer.validated_data.get("review"),
             submission=serializer.validated_data.get("submission"),
-            person=serializer.validated_data.get("person"),
+            speaker_profile=speaker_profile,
         ).first()
 
         if existing_answer:
@@ -274,7 +283,7 @@ class AnswerViewSet(ActivityLogMixin, PretalxViewSetMixin, viewsets.ModelViewSet
             question=serializer.validated_data["question"],
             review=serializer.validated_data.get("review"),
             submission=serializer.validated_data.get("submission"),
-            person=serializer.validated_data.get("person"),
+            speaker_profile=speaker_profile,
             defaults={"answer": serializer.validated_data["answer"]},
         )
 
