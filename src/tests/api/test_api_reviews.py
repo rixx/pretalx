@@ -8,6 +8,7 @@ import pytest
 from django_scopes import scope
 
 from pretalx.api.serializers.review import ReviewSerializer
+from pretalx.person.models import SpeakerProfile
 from pretalx.submission.models import Answer, Review, ReviewScore, ReviewScoreCategory
 
 
