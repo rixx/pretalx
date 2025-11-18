@@ -60,6 +60,7 @@ local_settings.py
 *.db
 _static/
 static.sdist/
+static.dist/
 .secret
 
 # Sphinx documentation
