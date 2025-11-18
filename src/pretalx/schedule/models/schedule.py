@@ -449,11 +449,11 @@ class Schedule(PretalxModel):
 
         speakers = defaultdict(lambda: {"create": [], "update": []})
         for new_talk in self.changes["new_talks"]:
-            for speaker in new_talk.submission.speaker_profiles.all():
-                speakers[speaker]["create"].append(new_talk)
+            for speaker_profile in new_talk.submission.speaker_profiles.all():
+                speakers[speaker_profile.user]["create"].append(new_talk)
         for moved_talk in self.changes["moved_talks"]:
-            for speaker in moved_talk["submission"].speaker_profiles.all():
-                speakers[speaker]["update"].append(moved_talk)
+            for speaker_profile in moved_talk["submission"].speaker_profiles.all():
+                speakers[speaker_profile.user]["update"].append(moved_talk)
         return speakers
 
     def generate_notifications(self, save=False):

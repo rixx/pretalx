@@ -26,8 +26,9 @@ def test_missing_answers_submission_question(submission, target, question):
                 answer="True", submission=submission, question=question
             )
         elif target == "speaker":
+            speaker_profile = submission.speaker_profiles.first()
             Answer.objects.create(
-                answer="True", person=submission.speakers.first(), question=question
+                answer="True", speaker_profile=speaker_profile, question=question
             )
         assert question.missing_answers() == 0
 

@@ -395,7 +395,7 @@ class Question(OrderedModel, PretalxModel):
         filter_speakers = filter_speakers or User.objects.none()
         if filter_speakers or filter_talks:
             answers = answers.filter(
-                models.Q(person__in=filter_speakers)
+                models.Q(speaker_profile__user__in=filter_speakers)
                 | models.Q(submission__in=filter_talks)
             )
         answer_count = answers.count()
@@ -404,7 +404,7 @@ class Question(OrderedModel, PretalxModel):
             return max(submissions.count() - answer_count, 0)
         if self.target == QuestionTarget.SPEAKER:
             users = filter_speakers or User.objects.filter(
-                submissions__event_id=self.event.pk
+                profiles__submissions__event_id=self.event.pk
             )
             return max(users.count() - answer_count, 0)
         return 0
