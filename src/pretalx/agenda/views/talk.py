@@ -28,7 +28,7 @@ from pretalx.submission.models import Submission, SubmissionStates
 
 class TalkMixin(PermissionRequired):
     permission_required = "submission.view_public_submission"
-    prefetches = ("slots", "resources", "speakers")
+    prefetches = ("slots", "resources", "speaker_profiles", "speaker_profiles__user")
 
     def get_queryset(self):
         return self.request.event.submissions.prefetch_related(

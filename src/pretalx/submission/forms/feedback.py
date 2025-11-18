@@ -25,7 +25,7 @@ class FeedbackForm(forms.ModelForm):
             not self.cleaned_data["speaker"]
             and self.instance.talk.speaker_profiles.count() == 1
         ):
-            self.instance.speaker = self.instance.talk.speaker_profiles.first()
+            self.instance.speaker = self.instance.talk.speaker_profiles.first().user
         return super().save(*args, **kwargs)
 
     class Meta:
