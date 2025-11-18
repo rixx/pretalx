@@ -120,7 +120,7 @@ class TalkView(TalkMixin, TemplateView):
         ).select_related("event")
         speakers = (
             self.submission.speaker_profiles.all()
-            .with_profiles(self.request.event)
+            .select_related("user")
             .prefetch_related(
                 Prefetch(
                     "submissions",
@@ -129,9 +129,9 @@ class TalkView(TalkMixin, TemplateView):
                 )
             )
         )
-        for speaker in speakers:
-            speaker.talk_profile = speaker.event_profile(event=self.request.event)
-            result.append(speaker)
+        for speaker_profile in speakers:
+            speaker_profile.talk_profile = speaker_profile
+            result.append(speaker_profile)
         ctx["speakers"] = result
         return ctx
 
@@ -248,7 +248,7 @@ class FeedbackView(TalkMixin, FormView):
 
     @cached_property
     def is_speaker(self):
-        return self.request.user in self.speakers
+        return self.talk.speaker_profiles.filter(user=self.request.user).exists()
 
     @cached_property
     def template_name(self):
