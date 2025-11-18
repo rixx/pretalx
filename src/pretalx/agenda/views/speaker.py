@@ -79,12 +79,12 @@ class SpeakerView(PermissionRequired, TemplateView):
             return []
         return (
             self.request.event.current_schedule.talks.filter(
-                submission__speakers__code=self.kwargs["code"], is_visible=True
+                submission__speaker_profiles__user__code=self.kwargs["code"], is_visible=True
             )
             .select_related(
                 "submission", "room", "submission__event", "submission__track"
             )
-            .prefetch_related("submission__speakers")
+            .prefetch_related("submission__speaker_profiles", "submission__speaker_profiles__user")
         )
 
     def get_permission_object(self):
@@ -154,7 +154,7 @@ class SpeakerTalksIcalView(PermissionRequired, DetailView):
         netloc = urlparse(settings.SITE_URL).netloc
         speaker = self.get_object()
         slots = self.request.event.current_schedule.talks.filter(
-            submission__speakers=speaker.user, is_visible=True
+            submission__speaker_profiles__user=speaker.user, is_visible=True
         ).select_related("room", "submission")
 
         cal = vobject.iCalendar()
