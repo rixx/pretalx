@@ -340,11 +340,11 @@ def submission_comments_active(user, obj):
 
 def speaker_profiles_for_user(event, user, submissions=None):
     submissions = submissions or submissions_for_user(event, user)
-    from pretalx.person.models import SpeakerProfile, User
+    from pretalx.person.models import SpeakerProfile
 
     return SpeakerProfile.objects.filter(
-        event=event, user__in=User.objects.filter(submissions__in=submissions)
-    )
+        event=event, submissions__in=submissions
+    ).distinct()
 
 
 def get_reviewable_submissions(event, user, queryset=None):
