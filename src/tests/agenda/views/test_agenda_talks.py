@@ -91,7 +91,9 @@ def test_can_see_talk_edit_btn(
     orga_client, django_assert_num_queries, orga_user, event, slot
 ):
     with scope(event=event):
-        slot.submission.speakers.add(orga_user)
+        from pretalx.person.models import SpeakerProfile
+        profile, _ = SpeakerProfile.objects.get_or_create(user=orga_user, event=event)
+        slot.submission.speaker_profiles.add(profile)
     with django_assert_num_queries(24):
         response = orga_client.get(slot.submission.urls.public, follow=True)
     assert response.status_code == 200

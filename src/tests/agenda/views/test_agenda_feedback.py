@@ -33,8 +33,11 @@ def test_can_create_feedback_for_multiple_speakers(
     django_assert_num_queries, past_slot, client, other_speaker, speaker, event
 ):
     with scope(event=event):
-        past_slot.submission.speakers.add(other_speaker)
-        past_slot.submission.speakers.add(speaker)
+        from pretalx.person.models import SpeakerProfile
+        profile1, _ = SpeakerProfile.objects.get_or_create(user=other_speaker, event=event)
+        profile2, _ = SpeakerProfile.objects.get_or_create(user=speaker, event=event)
+        past_slot.submission.speaker_profiles.add(profile1)
+        past_slot.submission.speaker_profiles.add(profile2)
         assert past_slot.submission.speakers.count() == 2
     with django_assert_num_queries(38):
         response = client.post(

@@ -322,14 +322,14 @@ class Schedule(PretalxModel):
                     {
                         "type": "speaker",
                         "speaker": {
-                            "name": speaker.get_display_name(),
-                            "code": speaker.code,
+                            "name": speaker_profile.user.get_display_name(),
+                            "code": speaker_profile.code,
                         },
                         "message": str(
                             _(
                                 "{speaker} is scheduled for another session at the same time."
                             )
-                        ).format(speaker=speaker.get_display_name()),
+                        ).format(speaker=speaker_profile.user.get_display_name()),
                         "url": url,
                     }
                 )

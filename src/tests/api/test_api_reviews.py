@@ -208,7 +208,9 @@ def test_reviewer_cannot_see_review_to_own_talk(
     with scope(event=event):
         event.active_review_phase.can_see_other_reviews = "always"
         event.active_review_phase.save()
-        other_review.submission.speakers.add(review_user)
+        from pretalx.person.models import SpeakerProfile
+        profile, _ = SpeakerProfile.objects.get_or_create(user=review_user, event=event)
+        other_review.submission.speaker_profiles.add(profile)
     response = client.get(
         event.api_urls.reviews,
         follow=True,
@@ -701,7 +703,8 @@ def test_reviewer_cannot_see_review_detail_for_own_talk(
     with scope(event=event):
         event.active_review_phase.can_see_other_reviews = "always"
         event.active_review_phase.save()
-        other_review.submission.speakers.add(review_user)
+        profile, _ = SpeakerProfile.objects.get_or_create(user=review_user, event=event)
+        other_review.submission.speaker_profiles.add(profile)
 
     response = client.get(
         event.api_urls.reviews + f"{other_review.pk}/",

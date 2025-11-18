@@ -233,7 +233,8 @@ def test_event_model_talks(
 ):
     event = slot.submission.event
     with scope(event=event):
-        other_slot.submission.speakers.add(slot.submission.speakers.first())
+        speaker_profile = slot.submission.speaker_profiles.first()
+        other_slot.submission.speaker_profiles.add(speaker_profile)
         assert len(event.talks.all()) == len(set(event.talks.all()))
         assert len(event.speakers.all()) == len(set(event.speakers.all()))
 

@@ -197,7 +197,9 @@ def test_speaker_list_search_by_name(
     client, event, speaker, slot, other_slot, other_speaker
 ):
     with scope(event=event):
-        other_slot.submission.speakers.add(other_speaker)
+        from pretalx.person.models import SpeakerProfile
+        profile, _ = SpeakerProfile.objects.get_or_create(user=other_speaker, event=event)
+        other_slot.submission.speaker_profiles.add(profile)
     name_to_find = speaker.name
     response = client.get(
         event.api_urls.speakers + f"?q={name_to_find}",
@@ -214,7 +216,8 @@ def test_speaker_list_search_by_email_public(
     client, event, speaker, slot, other_slot, other_speaker
 ):
     with scope(event=event):
-        other_slot.submission.speakers.add(other_speaker)
+        profile, _ = SpeakerProfile.objects.get_or_create(user=other_speaker, event=event)
+        other_slot.submission.speaker_profiles.add(profile)
     email_to_find = speaker.email
     response = client.get(
         event.api_urls.speakers + f"?q={email_to_find}",
@@ -230,7 +233,8 @@ def test_speaker_list_search_by_email_authenticated(
     client, orga_user_token, event, speaker, slot, other_slot, other_speaker
 ):
     with scope(event=event):
-        other_slot.submission.speakers.add(other_speaker)
+        profile, _ = SpeakerProfile.objects.get_or_create(user=other_speaker, event=event)
+        other_slot.submission.speaker_profiles.add(profile)
     email_to_find = speaker.email
     response = client.get(
         event.api_urls.speakers + f"?q={email_to_find}",
