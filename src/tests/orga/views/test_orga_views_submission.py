@@ -1003,3 +1003,57 @@ def test_orga_can_view_submission_history(orga_client, event, submission, orga_u
     response = orga_client.get(submission.orga_urls.history, follow=True)
     assert response.status_code == 200
     assert "History" in response.text or "Activity" in response.text
+
+
+@pytest.mark.django_db
+def test_orga_can_reorder_speakers(orga_client, submission, other_orga_user):
+    with scope(event=submission.event):
+        submission.speakers.add(other_orga_user)
+        submission.refresh_from_db()
+        assert submission.speakers.count() == 2
+
+        roles = list(submission.speaker_roles.order_by("position"))
+        assert len(roles) == 2
+        first_role_id = roles[0].id
+        second_role_id = roles[1].id
+
+        response = orga_client.post(
+            submission.orga_urls.speakers,
+            data={"order": f"{second_role_id},{first_role_id}"},
+            follow=True,
+        )
+        assert response.status_code == 200
+
+        roles = list(submission.speaker_roles.order_by("position"))
+        assert roles[0].id == second_role_id
+        assert roles[1].id == first_role_id
+        assert roles[0].position == 0
+        assert roles[1].position == 1
+
+
+@pytest.mark.django_db
+def test_speaker_display_order_respects_position(submission, other_orga_user):
+    with scope(event=submission.event):
+        original_speaker = submission.speakers.first()
+        submission.speakers.add(other_orga_user)
+        submission.refresh_from_db()
+
+        roles = list(submission.speaker_roles.order_by("position"))
+        first_role = roles[0]
+        second_role = roles[1]
+
+        first_role.position = 1
+        first_role.save()
+        second_role.position = 0
+        second_role.save()
+
+        try:
+            del submission.__dict__["display_speaker_names"]
+        except KeyError:
+            pass
+        display_names = submission.display_speaker_names
+
+        speaker_names = [role.user.get_display_name() for role in submission.speaker_roles.order_by("position")]
+        assert display_names == ", ".join(speaker_names)
+        assert speaker_names[0] == second_role.user.get_display_name()
+        assert speaker_names[1] == first_role.user.get_display_name()

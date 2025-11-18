@@ -157,6 +157,7 @@ class SpeakerRole(models.Model):
     user = models.ForeignKey(
         to="person.User", on_delete=models.CASCADE, related_name="speaker_roles"
     )
+    position = models.PositiveIntegerField(default=0)
 
     objects = ScopedManager(event="submission__event")
 
@@ -971,7 +972,8 @@ class Submission(GenerateCode, PretalxModel):
     @cached_property
     def display_speaker_names(self):
         """Helper method for a consistent speaker name display."""
-        return ", ".join(speaker.get_display_name() for speaker in self.speakers.all())
+        speaker_roles = self.speaker_roles.select_related("user").order_by("position")
+        return ", ".join(role.user.get_display_name() for role in speaker_roles)
 
     @cached_property
     def display_title_with_speakers(self):

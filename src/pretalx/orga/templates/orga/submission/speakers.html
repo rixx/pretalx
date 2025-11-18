@@ -11,9 +11,19 @@ SPDX-FileContributor: Florian Mösch
 {% load i18n %}
 {% load rich_text %}
 {% load rules %}
+{% load static %}
 {% load thumbnail %}
 
 {% block submission_title %}{% translate "Speakers" %} :: {% endblock submission_title %}
+
+{% block stylesheets %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static "orga/css/ui/dragsort.css" %}">
+{% endblock stylesheets %}
+
+{% block scripts %}
+    <script defer src="{% static "orga/js/ui/dragsort.js" %}"></script>
+{% endblock scripts %}
 
 {% block submission_content %}
 
@@ -36,16 +46,22 @@ SPDX-FileContributor: Florian Mösch
         </form>
     </div>{% endif %}
 
+    <div dragsort-url="{{ submission.orga_urls.speakers }}">
     {% for speaker in speakers %}
-        <div class="card mb-3 speaker-card"><div class="card-body">
+        <div class="card mb-3 speaker-card" dragsort-id="{{ speaker.role_id }}"><div class="card-body">
             <h3 class="card-title">
+                {% if can_edit_speakers %}
+                    <button draggable="true" type="button" class="btn btn-sm btn-primary mr-2 dragsort-button" title="{% translate "Reorder speakers" %}">
+                        <i class="fa fa-arrows"></i>
+                    </button>
+                {% endif %}
                 <a href="{% url "orga:speakers.view" event=request.event.slug code=speaker.user.code %}">
                     {{ speaker.user.get_display_name }}
                 </a>
                 {% if speaker.user.avatar and request.event.cfp.request_avatar %}
                     <div class="float-right">
                         <a href="{{ speaker.user.avatar.url }}" data-lightbox>
-                            <img loading="lazy" width="100%" src="{{ speaker.user.avatar|thumbnail:"default" }}" alt="{% translate "The speaker’s profile picture" %}">
+                            <img loading="lazy" width="100%" src="{{ speaker.user.avatar|thumbnail:"default" }}" alt="{% translate "The speaker's profile picture" %}">
                         </a>
                     </div>
                 {% endif %}
@@ -90,4 +106,5 @@ SPDX-FileContributor: Florian Mösch
             {% endif %}
         </div></div>
     {% endfor %}
+    </div>
 {% endblock submission_content %}

@@ -61,6 +61,7 @@ from pretalx.submission.models import (
     QuestionTarget,
     QuestionVariant,
     Resource,
+    SpeakerRole,
     Submission,
     SubmissionComment,
     SubmissionStates,
@@ -292,16 +293,32 @@ class SubmissionSpeakers(ReviewerSubmissionFilter, SubmissionViewMixin, FormView
     @cached_property
     def speakers(self):
         submission = self.object
+        speaker_roles = submission.speaker_roles.select_related("user").order_by("position")
         return [
             {
-                "user": speaker,
-                "profile": speaker.event_profile(submission.event),
-                "other_submissions": speaker.submissions.filter(
+                "role_id": role.id,
+                "user": role.user,
+                "profile": role.user.event_profile(submission.event),
+                "other_submissions": role.user.submissions.filter(
                     event=submission.event
                 ).exclude(code=submission.code),
             }
-            for speaker in submission.speakers.all()
+            for role in speaker_roles
         ]
+
+    def post(self, request, *args, **kwargs):
+        order = request.POST.get("order")
+        if not order:
+            return super().post(request, *args, **kwargs)
+        order = order.split(",")
+        for index, pk in enumerate(order):
+            role = get_object_or_404(
+                self.object.speaker_roles,
+                pk=pk,
+            )
+            role.position = index
+            role.save(update_fields=["position"])
+        return redirect(self.object.orga_urls.speakers)
 
     def form_valid(self, form):
         if email := form.cleaned_data.get("email"):
