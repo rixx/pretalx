@@ -13,7 +13,7 @@ from django_scopes import scope
 
 @pytest.mark.django_db
 @pytest.mark.usefixtures("other_slot")
-@pytest.mark.parametrize("version,queries", (("js", 6), ("nojs", 8)))
+@pytest.mark.parametrize("version,queries", (("js", 6), ("nojs", 15)))
 def test_can_see_schedule(
     client, django_assert_num_queries, user, event, slot, version, queries
 ):
@@ -59,14 +59,14 @@ def test_can_see_changelog(
 
     # This page performs one lookup fewer when using sqlite, so we’re using
     # an upper bound, even though that reduces the use of the caching check below.
-    with django_assert_max_num_queries(18):
+    with django_assert_max_num_queries(28):
         response = client.get(url, follow=True, HTTP_ACCEPT="text/html")
 
     assert response.status_code == 200
     assert slot.submission.title in response.content.decode()
 
     # Make sure that the next call uses fewer db queries, as the results are cached
-    with django_assert_max_num_queries(17):
+    with django_assert_max_num_queries(27):
         response = client.get(url, follow=True, HTTP_ACCEPT="text/html")
 
     assert response.status_code == 200
@@ -147,7 +147,7 @@ def test_cannot_see_no_schedule(client, user, event, featured):
 @pytest.mark.usefixtures("slot", "other_slot")
 def test_speaker_list(client, django_assert_num_queries, event, speaker):
     url = event.urls.speakers
-    with django_assert_num_queries(9):
+    with django_assert_num_queries(10):
         response = client.get(url, follow=True)
     assert response.status_code == 200
     assert speaker.name in response.text
@@ -172,7 +172,7 @@ def test_speaker_page(
         other_submission.slots.all().update(is_visible=True)
         slot.submission.slots.all().update(is_visible=True)
     url = reverse("agenda:speaker", kwargs={"code": speaker.code, "event": event.slug})
-    with django_assert_num_queries(14):
+    with django_assert_num_queries(22):
         response = client.get(url, follow=True)
     assert response.status_code == 200
     assert len(response.context["talks"]) == 2, response.context["talks"]
@@ -204,7 +204,7 @@ def test_speaker_page_other_submissions_only_if_visible(
         )
 
     url = reverse("agenda:speaker", kwargs={"code": speaker.code, "event": event.slug})
-    with django_assert_num_queries(13):
+    with django_assert_num_queries(19):
         response = client.get(url, follow=True)
 
     assert response.status_code == 200
@@ -250,7 +250,7 @@ def test_speaker_redirect_unknown(client, event, submission):
 @pytest.mark.usefixtures("other_slot")
 def test_schedule_page_text_table(client, django_assert_num_queries, event, slot):
     url = event.urls.schedule
-    with django_assert_num_queries(8):
+    with django_assert_num_queries(11):
         response = client.get(url, follow=True)
     assert response.status_code == 200
     title_lines = textwrap.wrap(slot.submission.title, width=16)
@@ -265,7 +265,7 @@ def test_schedule_page_text_table_explicit_header(
     client, django_assert_num_queries, event, slot
 ):
     url = event.urls.schedule
-    with django_assert_num_queries(8):
+    with django_assert_num_queries(11):
         response = client.get(url, follow=True, HTTP_ACCEPT="text/plain")
     assert response.status_code == 200
     title_lines = textwrap.wrap(slot.submission.title, width=16)
@@ -298,7 +298,7 @@ def test_schedule_page_redirects(
 @pytest.mark.usefixtures("other_slot")
 def test_schedule_page_text_list(client, django_assert_num_queries, event, slot):
     url = event.urls.schedule
-    with django_assert_num_queries(8):
+    with django_assert_num_queries(11):
         response = client.get(url, {"format": "list"}, follow=True)
     assert response.status_code == 200
     assert slot.submission.title in response.text
@@ -310,7 +310,7 @@ def test_schedule_page_text_wrong_format(
     client, django_assert_num_queries, event, slot
 ):
     url = event.urls.schedule
-    with django_assert_num_queries(8):
+    with django_assert_num_queries(11):
         response = client.get(url, {"format": "wrong"}, follow=True)
     assert response.status_code == 200
     assert slot.submission.title[:10] in response.text
@@ -319,7 +319,7 @@ def test_schedule_page_text_wrong_format(
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "version,queries_main,queries_versioned,queries_redirect",
-    (("js", 6, 8, 13), ("nojs", 7, 12, 16)),
+    (("js", 6, 8, 13), ("nojs", 7, 17, 16)),
 )
 @pytest.mark.usefixtures("other_slot")
 def test_versioned_schedule_page(

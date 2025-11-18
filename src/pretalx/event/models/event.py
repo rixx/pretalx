@@ -971,7 +971,7 @@ class Event(PretalxModel):
             return (
                 self.submissions.filter(slots__in=self.current_schedule.scheduled_talks)
                 .select_related("submission_type")
-                .prefetch_related("speakers")
+                .prefetch_related("speaker_profiles", "speaker_profiles__user")
             )
         return Submission.objects.none()
 

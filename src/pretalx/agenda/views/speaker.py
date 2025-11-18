@@ -47,9 +47,18 @@ class SpeakerList(EventPermissionRequired, Filterable, ListView):
         qs = self.filter_queryset(qs)
 
         speaker_mapping = defaultdict(list)
-        for talk in self.request.event.talks.all().prefetch_related("speaker_profiles", "speaker_profiles__user"):
-            for speaker in talk.speaker_profiles.all():
-                speaker_mapping[speaker.code].append(talk)
+        if self.request.event.current_schedule:
+            # Query talks directly to avoid scope issues with event.talks
+            talks = (
+                self.request.event.submissions.filter(
+                    slots__in=self.request.event.current_schedule.scheduled_talks
+                )
+                .select_related("submission_type")
+                .prefetch_related("speaker_profiles", "speaker_profiles__user")
+            )
+            for talk in talks:
+                for speaker in talk.speaker_profiles.all():
+                    speaker_mapping[speaker.code].append(talk)
 
         for profile in qs:
             profile.talks = speaker_mapping[profile.user.code]
