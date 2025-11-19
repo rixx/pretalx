@@ -305,7 +305,7 @@ def test_html_export_event_unknown(event):
         }
     }
 )
-def test_html_export_release_without_celery(event):
+def test_html_export_release_eager(event):
     with scope(event=event):
         event.cache.delete("rebuild_schedule_export")
         assert not event.cache.get("rebuild_schedule_export")
@@ -323,9 +323,9 @@ def test_html_export_release_without_celery(event):
             "LOCATION": "lalala",
         }
     },
-    CELERY_TASK_ALWAYS_EAGER=False,
+    RQ_EAGER=False,
 )
-def test_html_export_release_with_celery(mocker, event):
+def test_html_export_release_with_rq(mocker, event):
     mocker.patch("pretalx.agenda.tasks.export_schedule_html.apply_async")
 
     with scope(event=event):
@@ -412,7 +412,7 @@ def test_schedule_export_schedule_html_task_nozip(mocker, event):
     }
 )
 @pytest.mark.django_db
-def test_schedule_orga_trigger_export_without_celery(
+def test_schedule_orga_trigger_export_eager(
     orga_client, django_assert_max_num_queries, event
 ):
     event.cache.delete("rebuild_schedule_export")
@@ -427,8 +427,8 @@ def test_schedule_orga_trigger_export_without_celery(
 
 
 @pytest.mark.django_db
-@override_settings(CELERY_TASK_ALWAYS_EAGER=False)
-def test_schedule_orga_trigger_export_with_celery(
+@override_settings(RQ_EAGER=False)
+def test_schedule_orga_trigger_export_with_rq(
     mocker, orga_client, django_assert_max_num_queries, event
 ):
     mocker.patch("pretalx.agenda.tasks.export_schedule_html.apply_async")

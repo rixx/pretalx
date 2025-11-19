@@ -8,13 +8,13 @@ import logging
 
 from django_scopes import scope, scopes_disabled
 
-from pretalx.celery_app import app
+from pretalx.common.queue import task
 from pretalx.event.models import Event
 
 LOGGER = logging.getLogger(__name__)
 
 
-@app.task(name="pretalx.agenda.export_schedule_html")
+@task(name="pretalx.agenda.export_schedule_html")
 def export_schedule_html(*, event_id: int, make_zip=True):
     from django.core.management import call_command
 

@@ -7,8 +7,8 @@ from pathlib import Path
 from django.core.files.storage import default_storage
 from django_scopes import scopes_disabled
 
-from pretalx.celery_app import app
 from pretalx.common.image import process_image
+from pretalx.common.queue import task
 from pretalx.event.models import Event
 from pretalx.person.models import User
 from pretalx.submission.models import Submission
@@ -16,7 +16,7 @@ from pretalx.submission.models import Submission
 logger = logging.getLogger(__name__)
 
 
-@app.task(name="pretalx.process_image")
+@task(name="pretalx.process_image")
 def task_process_image(*, model: str, pk: int, field: str, generate_thumbnail: bool):
     models = {
         "Event": Event,
@@ -41,7 +41,7 @@ def task_process_image(*, model: str, pk: int, field: str, generate_thumbnail: b
             logger.error("Could not process image %s: %s", image.path, e)
 
 
-@app.task(name="pretalx.cleanup_file")
+@task(name="pretalx.cleanup_file")
 def task_cleanup_file(*, model: str, pk: int, field: str, path: str):
     models = {
         "Event": Event,

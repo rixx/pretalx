@@ -13,8 +13,8 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, get_connection
 from django.core.mail.backends.smtp import EmailBackend
 
-from pretalx.celery_app import app
 from pretalx.common.exceptions import SendMailException
+from pretalx.common.queue import task
 from pretalx.event.models import Event
 
 logger = logging.getLogger(__name__)
@@ -54,7 +54,7 @@ DEBUG_DOMAINS = [
 ]
 
 
-@app.task(bind=True, name="pretalx.common.send_mail")
+@task(bind=True, name="pretalx.common.send_mail")
 def mail_send_task(
     self,
     to: list,
@@ -145,7 +145,11 @@ def mail_send_task(
         # Retry on external problems: Connection issues (101, 111), timeouts (421), filled-up mailboxes (422),
         # out of memory (431), network issues (442), another timeout (447), or too many mails sent (452)
         if exception.smtp_code in (101, 111, 421, 422, 431, 442, 447, 452):
-            self.retry(max_retries=5, countdown=2 ** (self.request.retries * 2))
+            self.retry(
+                max_retries=5,
+                countdown=2 ** (self.request.retries * 2),
+                exc=SendMailException(f"Failed to send an email to {to}: {exception}"),
+            )
         logger.exception("Error sending email")
         raise SendMailException(f"Failed to send an email to {to}: {exception}")
     except Exception as exception:  # pragma: no cover

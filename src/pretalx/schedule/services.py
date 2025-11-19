@@ -403,7 +403,7 @@ def freeze_schedule(
     schedule_release.send_robust(schedule.event, schedule=schedule, user=user)
 
     if schedule.event.get_feature_flag("export_html_on_release"):
-        if not settings.CELERY_TASK_ALWAYS_EAGER:
+        if not settings.RQ_EAGER:
             export_schedule_html.apply_async(
                 kwargs={"event_id": schedule.event.id}, ignore_result=True
             )

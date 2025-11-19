@@ -15,7 +15,6 @@ from django.views.generic import FormView, TemplateView
 from django_context_decorator import context
 from django_scopes import scopes_disabled
 
-from pretalx.celery_app import app
 from pretalx.common.exceptions import UserDeletionError
 from pretalx.common.image import gravatar_csp
 from pretalx.common.models.settings import GlobalSettings
@@ -34,11 +33,15 @@ class AdminDashboard(PermissionRequired, TemplateView):
 
     @context
     def queue_length(self):
-        if settings.CELERY_TASK_ALWAYS_EAGER:
+        if settings.RQ_EAGER:
             return None
         try:
-            client = app.broker_connection().channel().client
-            return client.llen("celery")
+            from redis import Redis
+            from rq import Queue
+
+            connection = Redis.from_url(settings.RQ_REDIS_URL)
+            queue = Queue(connection=connection)
+            return len(queue)
         except Exception as e:
             return str(e)
 

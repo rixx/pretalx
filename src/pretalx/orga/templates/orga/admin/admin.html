@@ -138,16 +138,13 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
         {% translate "Redis is used as cache backend:" %} <code>{{ settings.CACHES.redis.LOCATION|copyable }}</code>
     {% endif %}
 
-    <h3 class="mt-4">Celery</h3>
-    {% if settings.CELERY_TASK_ALWAYS_EAGER %}
-        {% translate "No celery workers have been configured." %}
+    <h3 class="mt-4">{% translate "Task Queue" %}</h3>
+    {% if settings.RQ_EAGER %}
+        {% translate "No task workers have been configured." %}
     {% else %}
         <ul>
             <li>
-                {% translate "Broker" %}: <code>{{ settings.CELERY_BROKER_URL|copyable }}</code>
-            </li>
-            <li>
-                {% translate "Backend" %}: <code>{{ settings.CELERY_RESULT_BACKEND|copyable }}</code>
+                {% translate "Redis URL" %}: <code>{{ settings.RQ_REDIS_URL|copyable }}</code>
             </li>
             <li>
                 {% translate "Current queue length" %}: <strong>{{ queue_length }}</strong>

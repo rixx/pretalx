@@ -2,53 +2,43 @@
 # SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
 
 from django.conf import settings
-from django.core.checks import ERROR, INFO, WARNING, CheckMessage, register
-
-from pretalx.celery_app import app
+from django.core.checks import INFO, WARNING, CheckMessage, register
 
 CONFIG_HINT = "https://docs.pretalx.org/administrator/configure/"
 
 
 @register()
-def check_celery(app_configs, **kwargs):
+def check_queue(app_configs, **kwargs):
     if app_configs:
         return []
-    if settings.CELERY_TASK_ALWAYS_EAGER:
+    if settings.RQ_EAGER:
         if not settings.DEBUG:
             return [
                 CheckMessage(
                     level=WARNING,
-                    msg="There is no Celery task runner configured.",
-                    hint=f"Celery runners are recommended in production: {CONFIG_HINT}#the-celery-section",
+                    msg="There is no task runner (RQ) configured.",
+                    hint=f"Task runners are recommended in production: {CONFIG_HINT}#the-redis-section",
                     id="pretalx.W001",
                 )
             ]
         return []
 
     errors = []
-    if not settings.CELERY_RESULT_BACKEND:
+    try:
+        from redis import Redis
+
+        connection = Redis.from_url(settings.RQ_REDIS_URL)
+        connection.ping()
+    except Exception as e:
+        # Only warning, as the task runner may just still be starting up
         errors.append(
             CheckMessage(
-                level=ERROR,
-                msg="Celery is used, but no results backend is configured!",
-                hint=f"{CONFIG_HINT}#the-celery-section",
-                id="pretalx.E001",
+                level=WARNING,
+                msg="Could not connect to Redis for task queue",
+                hint=str(e),
+                id="pretalx.W002",
             )
         )
-    else:
-        try:
-            client = app.broker_connection().channel().client
-            client.llen("celery")
-        except Exception as e:
-            # Only warning, as the task runner may just still be starting up
-            errors.append(
-                CheckMessage(
-                    level=WARNING,
-                    msg="Could not connect to celery broker",
-                    hint=str(e),
-                    id="pretalx.W002",
-                )
-            )
     return errors
 
 

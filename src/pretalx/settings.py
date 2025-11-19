@@ -190,14 +190,13 @@ else:
             f.write(SECRET_KEY)
 
 ## TASK RUNNER SETTINGS
-if bool(config.get("celery", "broker")):
-    CELERY_BROKER_URL = config.get("celery", "broker")
-    CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
-    CELERY_RESULT_BACKEND = config.get("celery", "backend")
-    CELERY_RESULT_BACKEND_THREAD_SAFE = True
-    CELERY_TASK_ALWAYS_EAGER = False
-else:
-    CELERY_TASK_ALWAYS_EAGER = True
+# RQ uses Redis for both broker and result storage
+# For backwards compatibility, we check both 'redis' and 'celery' sections
+RQ_REDIS_URL = (
+    config.get("redis", "location", fallback=None)
+    or config.get("celery", "broker", fallback=None)
+)
+RQ_EAGER = not bool(RQ_REDIS_URL)
 
 ## DATABASE SETTINGS
 db_backend = config.get("database", "backend")

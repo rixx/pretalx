@@ -81,26 +81,30 @@ The error was {exception} at {location}.
         return intro
 
 
-class PretalxCeleryExceptionReporter(PretalxExceptionReporter):
-    def __init__(self, *args, task_id=False, celery_args=None, **kwargs):
+class PretalxTaskExceptionReporter(PretalxExceptionReporter):
+    def __init__(self, *args, task_id=False, task_args=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.task_id = task_id
-        self.celery_args = celery_args
+        self.task_args = task_args
 
     def get_tldr(self):
         return f"tl;dr: An exception occurred in task {self.task_id}"
 
     def get_extra_intro(self):
         intro = ""
-        if self.celery_args and len(self.celery_args) == 2:
-            cargs, ckwargs = self.celery_args
-            if cargs and hasattr(cargs, "__iter__"):
-                cargs = ", ".join(cargs)
-            if cargs:
-                intro += f"\nTask args: {cargs}"
-            if ckwargs:
-                intro += f"\nTask kwargs: {ckwargs}"
+        if self.task_args and len(self.task_args) == 2:
+            targs, tkwargs = self.task_args
+            if targs and hasattr(targs, "__iter__"):
+                targs = ", ".join(str(a) for a in targs)
+            if targs:
+                intro += f"\nTask args: {targs}"
+            if tkwargs:
+                intro += f"\nTask kwargs: {tkwargs}"
         return intro
+
+
+# Backwards compatibility alias
+PretalxCeleryExceptionReporter = PretalxTaskExceptionReporter
 
 
 class PretalxAdminEmailHandler(AdminEmailHandler):
