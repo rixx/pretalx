@@ -593,6 +593,7 @@ class ReviewSubmission(ReviewViewMixin, PermissionRequired, CreateOrUpdateView):
                 "answers": [
                     review.answers.filter(question=question).first()
                     for question in self.qform.queryset
+                    if question.user_can_see_answers(self.request.user)
                 ],
             }
 
@@ -643,6 +644,7 @@ class ReviewSubmission(ReviewViewMixin, PermissionRequired, CreateOrUpdateView):
                 "answers": [
                     review.answers.filter(question=question).first()
                     for question in self.qform.queryset
+                    if question.user_can_see_answers(self.request.user)
                 ],
             }
             for review in self.submission.reviews.exclude(

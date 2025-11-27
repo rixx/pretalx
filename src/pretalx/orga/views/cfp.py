@@ -217,7 +217,9 @@ class QuestionView(OrderActionMixin, OrgaCRUDView):
 
     @cached_property
     def filter_form(self):
-        return QuestionFilterForm(self.request.GET, event=self.request.event)
+        return QuestionFilterForm(
+            self.request.GET, event=self.request.event, user=self.request.user
+        )
 
     @cached_property
     def base_search_url(self):

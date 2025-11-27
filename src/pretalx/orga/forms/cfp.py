@@ -570,8 +570,9 @@ class QuestionFilterForm(forms.Form):
         SubmissionType.objects.none(), required=False, widget=EnhancedSelect
     )
 
-    def __init__(self, *args, event, **kwargs):
+    def __init__(self, *args, event, user=None, **kwargs):
         self.event = event
+        self.user = user
         super().__init__(*args, **kwargs)
         self.fields["submission_type"].queryset = SubmissionType.objects.filter(
             event=event
@@ -603,6 +604,14 @@ class QuestionFilterForm(forms.Form):
         answers = question.answers.filter(
             Q(person__in=speakers) | Q(submission__in=talks)
         )
+        # Filter answers based on team limits
+        if self.user and not question.user_can_see_answers(self.user):
+            # User doesn't have access to these answers
+            result["answer_count"] = 0
+            result["missing_answers"] = 0
+            result["grouped_answers"] = []
+            return result
+
         result["answer_count"] = answers.count()
         result["missing_answers"] = question.missing_answers(
             filter_speakers=speakers, filter_talks=talks

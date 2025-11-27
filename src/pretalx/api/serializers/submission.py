@@ -192,6 +192,8 @@ class SubmissionSerializer(FlexFieldsSerializerMixin, PretalxSerializer):
 
     @extend_schema_field(list[int])
     def get_answers(self, obj):
+        from pretalx.submission.rules import filter_answers_by_team_access
+
         questions = self.context.get("questions", [])
         qs = (
             obj.answers.filter(
@@ -202,6 +204,10 @@ class SubmissionSerializer(FlexFieldsSerializerMixin, PretalxSerializer):
             .select_related("question")
             .order_by("question__position")
         )
+        # Filter by team access
+        request = self.context.get("request")
+        if request and request.user:
+            qs = filter_answers_by_team_access(qs, request.user)
         if serializer := self.get_extra_flex_field("answers", qs):
             return serializer.data
         return qs.values_list("pk", flat=True)
