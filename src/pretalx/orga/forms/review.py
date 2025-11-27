@@ -432,6 +432,9 @@ class ReviewExportForm(ExportForm):
         return obj.user.email
 
     def get_answer(self, question, obj):
+        # Check if user has access to see this question's answers based on team limits
+        if not question.user_can_see_answers(self.user):
+            return None
         return question.answers.filter(review=obj).first()
 
 

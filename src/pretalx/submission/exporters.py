@@ -21,6 +21,8 @@ class SpeakerQuestionData(CSVExporterMixin, BaseExporter):
         return _("Custom fields data") + " (" + _("speakers") + ")"
 
     def get_csv_data(self, request, **kwargs):
+        from pretalx.submission.rules import filter_answers_by_team_access
+
         field_names = ["code", "name", "email", "question", "answer"]
         data = []
         qs = (
@@ -33,6 +35,8 @@ class SpeakerQuestionData(CSVExporterMixin, BaseExporter):
             .select_related("question", "person")
             .order_by("person__name")
         )
+        # Filter answers based on team limits
+        qs = filter_answers_by_team_access(qs, request.user)
         for answer in qs:
             data.append(
                 {
@@ -62,6 +66,8 @@ class SubmissionQuestionData(CSVExporterMixin, BaseExporter):
         return _("Custom fields data") + " (" + _("submissions") + ")"
 
     def get_csv_data(self, request, **kwargs):
+        from pretalx.submission.rules import filter_answers_by_team_access
+
         field_names = ["code", "title", "question", "answer"]
         data = []
         qs = Answer.objects.filter(
@@ -69,6 +75,8 @@ class SubmissionQuestionData(CSVExporterMixin, BaseExporter):
             question__event=self.event,
             question__active=True,
         ).order_by("submission__title")
+        # Filter answers based on team limits
+        qs = filter_answers_by_team_access(qs, request.user)
         for answer in qs:
             data.append(
                 {

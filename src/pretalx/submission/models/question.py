@@ -226,6 +226,15 @@ class Question(OrderedModel, PretalxModel):
         verbose_name=_("Session Types"),
         blank=True,
     )
+    limit_teams = models.ManyToManyField(
+        to="event.Team",
+        related_name="limited_questions",
+        help_text=_(
+            "You can limit answers to this field to specific teams. Leave empty to show answers to all users. Only available for non-public questions."
+        ),
+        verbose_name=_("Limit answers to teams"),
+        blank=True,
+    )
     question = I18nCharField(max_length=800, verbose_name=_("Label"))
     help_text = I18nCharField(
         null=True,
@@ -362,6 +371,31 @@ class Question(OrderedModel, PretalxModel):
             return reverse(
                 "api:question-icon", kwargs={"event": self.event.slug, "pk": self.pk}
             )
+
+    def user_can_see_answers(self, user):
+        """Check if a user can see answers to this question based on team limits.
+
+        Returns True if:
+        - The question has no team limits (limit_teams is empty)
+        - The user is in one of the limit_teams
+        - The user has organizer permissions that override team limits
+
+        This should only be called for non-public questions.
+        """
+        # If no team limits are set, everyone can see answers
+        if not self.limit_teams.exists():
+            return True
+
+        # Anonymous users can't be in teams
+        if not user or user.is_anonymous:
+            return False
+
+        # Users with full submission permissions can see all answers
+        if user.has_perm("submission.update_question", self.event):
+            return True
+
+        # Check if user is in any of the limit_teams
+        return self.limit_teams.filter(members=user).exists()
 
     class urls(EventUrls):
         base = "{self.event.cfp.urls.questions}{self.pk}/"

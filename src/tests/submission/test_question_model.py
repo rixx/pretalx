@@ -138,3 +138,74 @@ def test_answer_string_property(event, variant, answer, expected):
         question = Question.objects.create(question="?", variant=variant, event=event)
         answer = Answer.objects.create(question=question, answer=answer)
         assert answer.answer_string == expected
+
+
+@pytest.mark.django_db
+def test_question_team_limits_no_limits(question, orga_user):
+    """Test that users can see answers when no team limits are set."""
+    assert question.user_can_see_answers(orga_user) is True
+
+
+@pytest.mark.django_db
+def test_question_team_limits_with_team_member(event, orga_user):
+    """Test that team members can see answers to team-limited questions."""
+    from pretalx.event.models import Team
+    with scope(event=event):
+        team = Team.objects.create(organiser=event.organiser, name="Test Team")
+        team.members.add(orga_user)
+        question = Question.objects.create(
+            question="Team question", event=event, is_public=False
+        )
+        question.limit_teams.add(team)
+        assert question.user_can_see_answers(orga_user) is True
+
+
+@pytest.mark.django_db
+def test_question_team_limits_non_team_member(event, orga_user):
+    """Test that non-team members cannot see answers to team-limited questions."""
+    from pretalx.event.models import Team
+    from pretalx.person.models import User
+    with scope(event=event):
+        team = Team.objects.create(organiser=event.organiser, name="Test Team")
+        question = Question.objects.create(
+            question="Team question", event=event, is_public=False
+        )
+        question.limit_teams.add(team)
+        other_user = User.objects.create(name="Other User", email="other@example.com")
+        assert question.user_can_see_answers(other_user) is False
+
+
+@pytest.mark.django_db
+def test_filter_answers_by_team_access(event, submission, orga_user):
+    """Test that filter_answers_by_team_access correctly filters answers."""
+    from pretalx.event.models import Team
+    from pretalx.submission.rules import filter_answers_by_team_access
+    with scope(event=event):
+        team = Team.objects.create(organiser=event.organiser, name="Test Team")
+        team.members.add(orga_user)
+
+        # Create a question with team limits
+        team_question = Question.objects.create(
+            question="Team Q", event=event, is_public=False
+        )
+        team_question.limit_teams.add(team)
+
+        # Create a question without team limits
+        public_question = Question.objects.create(
+            question="Public Q", event=event, is_public=False
+        )
+
+        # Create answers
+        team_answer = Answer.objects.create(
+            question=team_question, submission=submission, answer="team"
+        )
+        public_answer = Answer.objects.create(
+            question=public_question, submission=submission, answer="public"
+        )
+
+        # Test filtering
+        all_answers = Answer.objects.filter(submission=submission)
+        filtered = filter_answers_by_team_access(all_answers, orga_user)
+
+        assert team_answer in filtered
+        assert public_answer in filtered

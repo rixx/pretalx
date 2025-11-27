@@ -225,6 +225,10 @@ class QuestionForm(ReadOnlyFlag, PretalxI18nModelForm):
             self.fields.pop("submission_types")
         else:
             self.fields["submission_types"].queryset = event.submission_types.all()
+        if event.organiser.teams.count():
+            self.fields["limit_teams"].queryset = event.organiser.teams.all()
+        else:
+            self.fields.pop("limit_teams")
 
     def clean_options(self):
         # read uploaded file, return list of strings or list of i18n strings
@@ -248,8 +252,8 @@ class QuestionForm(ReadOnlyFlag, PretalxI18nModelForm):
             return [opt.strip() for opt in options if opt.strip()]
 
     def clean(self):
-        deadline = self.cleaned_data["deadline"]
-        question_required = self.cleaned_data["question_required"]
+        deadline = self.cleaned_data.get("deadline")
+        question_required = self.cleaned_data.get("question_required")
         if (not deadline) and (question_required == QuestionRequired.AFTER_DEADLINE):
             self.add_error(
                 "deadline",
@@ -268,6 +272,15 @@ class QuestionForm(ReadOnlyFlag, PretalxI18nModelForm):
                 "options_replace",
                 forms.ValidationError(
                     _("You cannot replace options without uploading new ones.")
+                ),
+            )
+        is_public = self.cleaned_data.get("is_public")
+        limit_teams = self.cleaned_data.get("limit_teams")
+        if is_public and limit_teams:
+            self.add_error(
+                "limit_teams",
+                forms.ValidationError(
+                    _("Team limits are only available for non-public questions.")
                 ),
             )
 
@@ -330,6 +343,7 @@ class QuestionForm(ReadOnlyFlag, PretalxI18nModelForm):
             "icon",
             "tracks",
             "submission_types",
+            "limit_teams",
             "contains_personal_data",
             "min_length",
             "max_length",
@@ -350,12 +364,14 @@ class QuestionForm(ReadOnlyFlag, PretalxI18nModelForm):
             "max_date": HtmlDateInput,
             "tracks": EnhancedSelectMultiple,
             "submission_types": EnhancedSelectMultiple,
+            "limit_teams": EnhancedSelectMultiple,
             "icon": IconSelect,
         }
         field_classes = {
             "variant": SafeModelChoiceField,
             "tracks": SafeModelMultipleChoiceField,
             "submission_types": SafeModelMultipleChoiceField,
+            "limit_teams": SafeModelMultipleChoiceField,
         }
 
 

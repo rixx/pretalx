@@ -212,6 +212,33 @@ def has_reviewer_access(user, obj):
     return user in obj.assigned_reviewers.all()
 
 
+def filter_answers_by_team_access(answers, user):
+    """Filter answer queryset based on team limits for questions.
+
+    This function filters out answers to questions that have team limits set,
+    unless the user is in one of those teams or has organizer permissions.
+
+    :param answers: Queryset of Answer objects
+    :param user: User object to check team membership
+    :return: Filtered queryset of answers
+    """
+    if not user or user.is_anonymous:
+        # Anonymous users can only see answers to questions without team limits
+        return answers.filter(question__limit_teams__isnull=True)
+
+    # Get all questions with team limits that the user can access
+    # Either because they're in the team or have full permissions
+    accessible_limited_questions = Q(question__limit_teams__isnull=True)
+
+    # Check if user is in any teams for this answer's event
+    # We need to do this via a subquery to handle the many-to-many relationship
+    from pretalx.event.models import Team
+    user_teams = Team.objects.filter(members=user)
+    accessible_limited_questions |= Q(question__limit_teams__in=user_teams)
+
+    return answers.filter(accessible_limited_questions).distinct()
+
+
 def questions_for_user(event, user):
     """Used to retrieve synced querysets in the orga list and the API list."""
     from django.db.models import Q
