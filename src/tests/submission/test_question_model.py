@@ -176,6 +176,24 @@ def test_question_team_limits_non_team_member(event, orga_user):
 
 
 @pytest.mark.django_db
+def test_question_team_limits_organizer_not_in_team(event, orga_user):
+    """Test that even organizers cannot see answers if not in the team.
+
+    Team limits are strictly enforced for sensitive data protection.
+    """
+    from pretalx.event.models import Team
+    with scope(event=event):
+        team = Team.objects.create(organiser=event.organiser, name="Test Team")
+        # Don't add orga_user to the team
+        question = Question.objects.create(
+            question="Team question", event=event, is_public=False
+        )
+        question.limit_teams.add(team)
+        # Even though orga_user has organizer permissions, they can't see answers
+        assert question.user_can_see_answers(orga_user) is False
+
+
+@pytest.mark.django_db
 def test_filter_answers_by_team_access(event, submission, orga_user):
     """Test that filter_answers_by_team_access correctly filters answers."""
     from pretalx.event.models import Team

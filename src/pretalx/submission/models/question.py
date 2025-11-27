@@ -378,9 +378,10 @@ class Question(OrderedModel, PretalxModel):
         Returns True if:
         - The question has no team limits (limit_teams is empty)
         - The user is in one of the limit_teams
-        - The user has organizer permissions that override team limits
 
-        This should only be called for non-public questions.
+        Team limits are strictly enforced - even users with full organizer
+        permissions cannot see answers unless they are in a limit_team.
+        This protects very sensitive personal information.
         """
         # If no team limits are set, everyone can see answers
         if not self.limit_teams.exists():
@@ -390,11 +391,8 @@ class Question(OrderedModel, PretalxModel):
         if not user or user.is_anonymous:
             return False
 
-        # Users with full submission permissions can see all answers
-        if user.has_perm("submission.update_question", self.event):
-            return True
-
         # Check if user is in any of the limit_teams
+        # No permission overrides - team limits are strict
         return self.limit_teams.filter(members=user).exists()
 
     class urls(EventUrls):
