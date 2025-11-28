@@ -512,6 +512,12 @@ class QuestionColumn(TemplateColumn):
         return queryset, True
 
     def render(self, record, table, value, bound_column, **kwargs):
+        # Check if user has access to see this question's answers
+        request = getattr(table, "request", None)
+        if request and hasattr(request, "user") and self.question:
+            if not self.question.user_can_see_answers(request.user):
+                return self.placeholder
+
         answer = table.get_answer_for_question(record, self.question.id)
 
         if not answer:

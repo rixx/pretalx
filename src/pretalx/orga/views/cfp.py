@@ -152,6 +152,22 @@ class QuestionView(OrderActionMixin, OrgaCRUDView):
         permission = permission_map.get(self.action, self.action)
         return self.model.get_perm(permission)
 
+    def get_success_url(self):
+        """Override to redirect to list if user can't see question answers.
+
+        When a user can edit questions but isn't in any of the limit_teams,
+        they should be redirected to the list view instead of the detail view
+        which shows answer statistics.
+        """
+        if self.next_url:
+            return self.next_url
+        if self.action == "delete" or self.detail_is_update:
+            return self.reverse("list")
+        # Check if user can see answers for this question
+        if self.object and not self.object.user_can_see_answers(self.request.user):
+            return self.reverse("list")
+        return self.reverse("detail", instance=self.object)
+
     @cached_property
     def formset(self):
         formset_class = inlineformset_factory(

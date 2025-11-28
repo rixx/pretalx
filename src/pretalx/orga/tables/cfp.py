@@ -228,7 +228,7 @@ class QuestionTable(UnsortableMixin, PretalxTable):
 
     question = tables.Column(
         verbose_name=_("Custom field"),
-        linkify=lambda record: record.urls.base,
+        linkify=True,  # We'll customize the link in render_question
     )
     answer_count = tables.Column(
         verbose_name=_("Responses"),
@@ -248,6 +248,23 @@ class QuestionTable(UnsortableMixin, PretalxTable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.attrs["dragsort-url"] = self.event.cfp.urls.questions
+
+    def render_question(self, record, value):
+        """Render question name with conditional link.
+
+        Only link to detail view if user can see answers.
+        Otherwise, link to edit view.
+        """
+        from django.utils.html import format_html
+
+        request = getattr(self, "request", None)
+        if request and hasattr(request, "user") and record:
+            if record.user_can_see_answers(request.user):
+                url = record.urls.base
+            else:
+                url = record.urls.edit
+            return format_html('<a href="{}">{}</a>', url, value)
+        return value
 
     class Meta:
         model = Question
