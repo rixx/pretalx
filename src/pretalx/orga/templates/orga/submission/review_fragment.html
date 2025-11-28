@@ -3,7 +3,6 @@ SPDX-FileCopyrightText: 2021-present Tobias Kunze
 SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
 -->
 
-{% load answer_filters %}
 {% load i18n %}
 {% load rich_text %}
 
@@ -16,7 +15,7 @@ SPDX-License-Identifier: AGPL-3.0-only WITH LicenseRef-Pretalx-AGPL-3.0-Terms
             </td>
         {% endfor %}
     {% endif %}
-    {% for answer in review.answers.all|filter_team_answers:request.user %}
+    {% for answer in review.answers %}
         <td>
             {{ answer.answer }}
         </td>
