@@ -33,12 +33,23 @@ class QuestionColumnMixin:
                 self._question_model = "submission"
 
     def _get_question_columns(self):
-        """Build list of question columns for extra_columns parameter."""
+        """Build list of question columns for extra_columns parameter.
+
+        Only includes columns for questions the current user has access to see.
+        """
         extra_columns = []
         if not getattr(self, "short_questions", None):
             return extra_columns
 
+        # Get current user from request to check permissions
+        request = getattr(self, "request", None)
+        user = request.user if request and hasattr(request, "user") else None
+
         for question in self.short_questions:
+            # Only add column if user can see answers for this question
+            if user and not question.user_can_see_answers(user):
+                continue
+
             column_name = f"question_{question.id}"
             extra_columns.append(
                 (
@@ -512,12 +523,6 @@ class QuestionColumn(TemplateColumn):
         return queryset, True
 
     def render(self, record, table, value, bound_column, **kwargs):
-        # Check if user has access to see this question's answers
-        request = getattr(table, "request", None)
-        if request and hasattr(request, "user") and self.question:
-            if not self.question.user_can_see_answers(request.user):
-                return self.placeholder
-
         answer = table.get_answer_for_question(record, self.question.id)
 
         if not answer:
